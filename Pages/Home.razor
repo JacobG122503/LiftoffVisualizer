@@ -10,11 +10,28 @@ dotnet watch
 <PageTitle>Liftoff Visualizer</PageTitle>
 
 <div class="page-container">
-    @if (_loading)
+    @if (!DataService.HasData)
     {
-        <div class="loading-container">
-            <div class="loading-spinner"></div>
-            <div class="loading-text">Loading your workout data...</div>
+        <div class="paste-landing">
+            <h1 class="paste-title">Liftoff Visualizer</h1>
+            <p class="paste-subtitle">Paste your Liftoff CSV export below to visualize your workout history.</p>
+            <p class="paste-hint">In Liftoff: <strong>Profile → Export Workouts</strong> → copy the full CSV text and paste it here.</p>
+            <textarea class="paste-input @(_loading ? "paste-input--parsing" : "")"
+                      placeholder="Paste your CSV data here..."
+                      @oninput="OnCsvInput"
+                      disabled="@_loading"
+                      rows="12"></textarea>
+            @if (_loading)
+            {
+                <div class="paste-loading">
+                    <div class="paste-spinner"></div>
+                    <span>Analyzing your data...</span>
+                </div>
+            }
+            @if (!string.IsNullOrWhiteSpace(_errorMessage))
+            {
+                <div class="paste-error">@_errorMessage</div>
+            }
         </div>
     }
     else
@@ -97,7 +114,11 @@ dotnet watch
 </div>
 
 @code {
-    private bool _loading = true;
+    private bool _loading = false;
+    private string _csvInput = "";
+    private string _errorMessage = "";
+    private CancellationTokenSource? _debounceCts;
+
     private List<string> _exerciseNames = new();
     private List<WorkoutRecord> _allRecords = new();
     private Dictionary<string, List<ExerciseSummary>> _summaryCache = new();
@@ -121,27 +142,66 @@ dotnet watch
         )
         .ToList();
 
-    protected override async Task OnInitializedAsync()
+    private async Task OnCsvInput(ChangeEventArgs e)
     {
-        _allRecords = await DataService.GetRecordsAsync();
-        _exerciseNames = await DataService.GetExerciseNamesAsync();
+        _csvInput = e.Value?.ToString() ?? "";
+        _errorMessage = "";
 
-        // Pre-cache all summaries
-        foreach (var name in _exerciseNames)
+        _debounceCts?.Cancel();
+        _debounceCts = new CancellationTokenSource();
+        var token = _debounceCts.Token;
+
+        try
         {
-            _summaryCache[name] = await DataService.GetExerciseSummariesAsync(name);
+            await Task.Delay(600, token);
+        }
+        catch (TaskCanceledException)
+        {
+            return;
         }
 
-        // Calculate muscle group counts (number of unique exercises per group)
-        _muscleGroups = _exerciseNames
-            .GroupBy(WorkoutDataService.GetMuscleGroup)
-            .ToDictionary(g => g.Key, g => g.Count());
+        await LoadData();
+    }
 
-        // Stats
-        _totalWorkouts = _allRecords.Select(r => r.Date.Date).Distinct().Count();
-        _totalVolume = _allRecords.Sum(r => r.Weight * r.Reps);
-        _totalSets = _allRecords.Count;
-        _firstDate = _allRecords.Min(r => r.Date);
+    private async Task LoadData()
+    {
+        if (string.IsNullOrWhiteSpace(_csvInput)) return;
+        _errorMessage = "";
+        _loading = true;
+
+        try
+        {
+            DataService.LoadFromText(_csvInput);
+
+            _allRecords = await DataService.GetRecordsAsync();
+
+            if (_allRecords.Count == 0)
+            {
+                _errorMessage = "No valid workout records found. Make sure you pasted the full Liftoff CSV export.";
+                DataService.Reset();
+                _loading = false;
+                return;
+            }
+
+            _exerciseNames = await DataService.GetExerciseNamesAsync();
+
+            foreach (var name in _exerciseNames)
+                _summaryCache[name] = await DataService.GetExerciseSummariesAsync(name);
+
+            _muscleGroups = _exerciseNames
+                .GroupBy(WorkoutDataService.GetMuscleGroup)
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            _totalWorkouts = _allRecords.Select(r => r.Date.Date).Distinct().Count();
+            _totalVolume = _allRecords.Sum(r => r.Weight * r.Reps);
+            _totalSets = _allRecords.Count;
+            _firstDate = _allRecords.Min(r => r.Date);
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to parse CSV: {ex.Message}";
+            DataService.Reset();
+        }
 
         _loading = false;
     }

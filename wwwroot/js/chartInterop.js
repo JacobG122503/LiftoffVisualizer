@@ -53,7 +53,16 @@ window.chartInterop = {
                         cornerRadius: 8,
                         padding: 12,
                         titleFont: { family: "'Inter', sans-serif", weight: '600' },
-                        bodyFont: { family: "'Inter', sans-serif" }
+                        bodyFont: { family: "'Inter', sans-serif" },
+                        callbacks: {
+                            title: function(items) {
+                                if (!items.length) return '';
+                                const rawLabel = items[0].chart.data.labels[items[0].dataIndex];
+                                const date = new Date(rawLabel + 'T00:00:00');
+                                if (isNaN(date)) return rawLabel;
+                                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                            }
+                        }
                     }
                 },
                 scales: {
@@ -64,7 +73,13 @@ window.chartInterop = {
                             font: { family: "'Inter', sans-serif", size: 11 },
                             maxRotation: 45,
                             autoSkip: true,
-                            maxTicksLimit: 15
+                            maxTicksLimit: 15,
+                            callback: function(value, index, ticks) {
+                                const label = this.getLabelForValue(value);
+                                const date = new Date(label + 'T00:00:00');
+                                if (isNaN(date)) return label;
+                                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                            }
                         }
                     },
                     y: {

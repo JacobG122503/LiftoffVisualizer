@@ -128,7 +128,7 @@
     {
         if (!_filteredData.Any()) return;
 
-        var labels = _filteredData.Select(d => d.Date.ToString("MMM dd")).ToArray();
+        var labels = _filteredData.Select(d => d.Date.ToString("yyyy-MM-dd")).ToArray();
         var data = _selectedMetric switch
         {
             "volume" => _filteredData.Select(d => d.TotalVolume).ToArray(),

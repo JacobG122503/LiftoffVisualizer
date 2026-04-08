@@ -5,21 +5,23 @@ namespace LiftoffVisualizer.Services;
 
 public class WorkoutDataService
 {
-    private readonly HttpClient _http;
     private List<WorkoutRecord>? _records;
 
-    public WorkoutDataService(HttpClient http)
+    public bool HasData => _records != null;
+
+    public void LoadFromText(string csvText)
     {
-        _http = http;
+        _records = ParseCsv(csvText);
     }
 
-    public async Task<List<WorkoutRecord>> GetRecordsAsync()
+    public void Reset()
     {
-        if (_records != null) return _records;
+        _records = null;
+    }
 
-        var csv = await _http.GetStringAsync("data/liftoff_workout_data.csv");
-        _records = ParseCsv(csv);
-        return _records;
+    public Task<List<WorkoutRecord>> GetRecordsAsync()
+    {
+        return Task.FromResult(_records ?? new List<WorkoutRecord>());
     }
 
     public async Task<List<string>> GetExerciseNamesAsync()
