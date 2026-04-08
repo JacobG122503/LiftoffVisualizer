@@ -6,6 +6,7 @@ dotnet watch
 
 @page "/"
 @inject WorkoutDataService DataService
+@inject IJSRuntime JS
 
 <PageTitle>Liftoff Visualizer</PageTitle>
 
@@ -54,10 +55,19 @@ dotnet watch
     else
     {
         <div class="page-header">
-            <h1 class="page-title">Your Lifting Journey</h1>
-            <p class="page-subtitle">
-                @_totalWorkouts workouts tracked across @_exerciseNames.Count exercises since @_firstDate.ToString("MMM yyyy")
-            </p>
+            <div>
+                <h1 class="page-title">Your Lifting Journey</h1>
+                <p class="page-subtitle">
+                    @_totalWorkouts workouts tracked across @_exerciseNames.Count exercises since @_firstDate.ToString("MMM yyyy")
+                </p>
+            </div>
+            <button class="share-btn" @onclick="ShareProgress" title="Share your progress">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                </svg>
+                Share
+            </button>
         </div>
 
         <!-- Summary Stats -->
@@ -83,6 +93,86 @@ dotnet watch
                 <div class="summary-card-label">Days Since Start</div>
             </div>
         </div>
+
+        <!-- More Stats -->
+        <details class="more-stats-section">
+            <summary class="more-stats-toggle">More Stats</summary>
+            <div class="more-stats-grid">
+                <div class="more-stat-card">
+                    <div class="more-stat-icon">🔥</div>
+                    <div class="more-stat-value" style="@StatFontSize(_longestStreak.ToString())">@_longestStreak</div>
+                    <div class="more-stat-label">Longest Streak (days)</div>
+                </div>
+                <div class="more-stat-card">
+                    <div class="more-stat-icon">😴</div>
+                    <div class="more-stat-value" style="@StatFontSize(_longestBreak.ToString())">@_longestBreak</div>
+                    <div class="more-stat-label">Longest Break (days)</div>
+                </div>
+                <div class="more-stat-card">
+                    <div class="more-stat-icon">⭐</div>
+                    <div class="more-stat-value" style="@StatFontSize(_favoriteExercise)">@_favoriteExercise</div>
+                    <div class="more-stat-label">Favorite Exercise</div>
+                </div>
+                <div class="more-stat-card">
+                    <div class="more-stat-icon">📈</div>
+                    <div class="more-stat-value" style="@StatFontSize(_mostImprovedExercise)">@_mostImprovedExercise</div>
+                    <div class="more-stat-label">Most Improved (+@_mostImprovedGain.ToString("N0") lbs)</div>
+                </div>
+                <div class="more-stat-card">
+                    <div class="more-stat-icon">📅</div>
+                    <div class="more-stat-value" style="@StatFontSize(_mostActiveWeekday)">@_mostActiveWeekday</div>
+                    <div class="more-stat-label">Day you train most often</div>
+                </div>
+                <div class="more-stat-card">
+                    <div class="more-stat-icon">🗓️</div>
+                    <div class="more-stat-value" style="@StatFontSize(_peakMonth)">@_peakMonth</div>
+                    <div class="more-stat-label">Your most active month</div>
+                </div>
+                <div class="more-stat-card">
+                    <div class="more-stat-icon">📊</div>
+                    <div class="more-stat-value" style="@StatFontSize(_avgWorkoutsPerWeek.ToString())">@_avgWorkoutsPerWeek</div>
+                    <div class="more-stat-label">Avg Workouts / Week</div>
+                </div>
+                <div class="more-stat-card">
+                    <div class="more-stat-icon">💪</div>
+                    <div class="more-stat-value" style="@StatFontSize(_totalRepsAllTime.ToString("N0"))">@_totalRepsAllTime.ToString("N0")</div>
+                    <div class="more-stat-label">Total Reps All Time</div>
+                </div>
+                <div class="more-stat-card">
+                    <div class="more-stat-icon">🏋️</div>
+                    <div class="more-stat-value" style="@StatFontSize($"{_heaviestLift} lbs")">@_heaviestLift lbs</div>
+                    <div class="more-stat-label">Heaviest Lift (@_heaviestExercise)</div>
+                </div>
+                <div class="more-stat-card">
+                    <div class="more-stat-icon">⚡</div>
+                    <div class="more-stat-value" style="@StatFontSize(_maxSetsInSession.ToString())">@_maxSetsInSession</div>
+                    <div class="more-stat-label">Most Sets in One Day</div>
+                    <div class="more-stat-date">set on @_maxSetsDate.ToString("MMM d, yyyy")</div>
+                </div>
+                <div class="more-stat-card">
+                    <div class="more-stat-icon">🔄</div>
+                    <div class="more-stat-value" style="@StatFontSize(_maxRepsInSession.ToString())">@_maxRepsInSession</div>
+                    <div class="more-stat-label">Most Reps — @_maxRepsExercise</div>
+                    <div class="more-stat-date">set on @_maxRepsDate.ToString("MMM d, yyyy")</div>
+                </div>
+                <div class="more-stat-card">
+                    <div class="more-stat-icon">💥</div>
+                    <div class="more-stat-value" style="@StatFontSize($"{_maxVolumeInSession:N0} lbs")">@_maxVolumeInSession.ToString("N0") lbs</div>
+                    <div class="more-stat-label">Best Volume in One Day</div>
+                    <div class="more-stat-date">set on @_maxVolumeDate.ToString("MMM d, yyyy")</div>
+                </div>
+                <div class="more-stat-card">
+                    <div class="more-stat-icon">🧩</div>
+                    <div class="more-stat-value" style="@StatFontSize(_maxExercisesInSession.ToString())">@_maxExercisesInSession</div>
+                    <div class="more-stat-label">Most Exercises in One Day</div>
+                </div>
+                <div class="more-stat-card">
+                    <div class="more-stat-icon">🌱</div>
+                    <div class="more-stat-value" style="@StatFontSize(_firstExercise)">@_firstExercise</div>
+                    <div class="more-stat-label">First Exercise Ever Logged</div>
+                </div>
+            </div>
+        </details>
 
         <!-- Muscle Group Filter Pills -->
         <div class="muscle-pills">
@@ -130,6 +220,33 @@ dotnet watch
     }
 </div>
 
+@if (_showSharePreview)
+{
+    <div class="share-preview-overlay" @onclick="ClosePreview">
+        <div class="share-preview-modal" @onclick:stopPropagation="true">
+            <div class="share-preview-header">
+                <span>Share Your Progress</span>
+                <button class="fs-close" @onclick="ClosePreview">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <img src="@_previewImageUrl" class="share-preview-img" alt="Share preview" />
+            <div class="share-preview-actions">
+                <button class="share-preview-cancel" @onclick="ClosePreview">Cancel</button>
+                <button class="share-btn" @onclick="ConfirmShare">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                    </svg>
+                    Share / Download
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private bool _loading = false;
     private string _csvInput = "";
@@ -148,6 +265,32 @@ dotnet watch
     private double _totalVolume;
     private int _totalSets;
     private DateTime _firstDate;
+
+    // Extra stats
+    private int _longestStreak;
+    private int _longestBreak;
+    private string _favoriteExercise = "";
+    private string _mostImprovedExercise = "";
+    private double _mostImprovedGain;
+    private string _mostActiveWeekday = "";
+    private string _peakMonth = "";
+    private double _avgWorkoutsPerWeek;
+    private int _maxSetsInSession;
+    private DateTime _maxSetsDate;
+    private int _maxRepsInSession;
+    private string _maxRepsExercise = "";
+    private DateTime _maxRepsDate;
+    private DateTime _maxVolumeDate;
+    private double _heaviestLift;
+    private string _heaviestExercise = "";
+    private double _maxVolumeInSession;
+    private int _maxExercisesInSession;
+    private string _firstExercise = "";
+    private int _totalRepsAllTime;
+
+    // Share preview
+    private bool _showSharePreview = false;
+    private string _previewImageUrl = "";
 
     private List<string> _filteredExercises => _exerciseNames
         .Where(e =>
@@ -245,6 +388,94 @@ dotnet watch
             _totalVolume = _allRecords.Sum(r => r.Weight * r.Reps);
             _totalSets = _allRecords.Count;
             _firstDate = _allRecords.Min(r => r.Date);
+
+            // Compute extra stats
+            var workoutDays = _allRecords.Select(r => r.Date.Date).Distinct().OrderBy(d => d).ToList();
+
+            // Streak (up to 2-day gap allowed) & longest break
+            int streak = 1, maxStreak = 1, maxBreak = 0;
+            for (int i = 1; i < workoutDays.Count; i++)
+            {
+                var gap = (workoutDays[i] - workoutDays[i - 1]).Days;
+                if (gap <= 3) { streak++; maxStreak = Math.Max(maxStreak, streak); }
+                else { streak = 1; }
+                if (gap > 1) maxBreak = Math.Max(maxBreak, gap - 1);
+            }
+            _longestStreak = maxStreak;
+            _longestBreak = maxBreak;
+
+            // Favorite exercise (most sessions)
+            _favoriteExercise = _summaryCache
+                .OrderByDescending(kv => kv.Value.Count)
+                .Select(kv => kv.Key).FirstOrDefault() ?? "";
+
+            // Most improved (biggest absolute weight gain, exercises with weight > 0)
+            var improved = _summaryCache
+                .Where(kv => kv.Value.Any(s => s.MaxWeight > 0))
+                .Select(kv => new {
+                    Name = kv.Key,
+                    Gain = kv.Value.Max(s => s.MaxWeight) - kv.Value.First(s => s.MaxWeight > 0).MaxWeight
+                })
+                .OrderByDescending(x => x.Gain).FirstOrDefault();
+            _mostImprovedExercise = improved?.Name ?? "";
+            _mostImprovedGain = improved?.Gain ?? 0;
+
+            // Day of week you train most often
+            _mostActiveWeekday = workoutDays
+                .GroupBy(d => d.DayOfWeek)
+                .OrderByDescending(g => g.Count())
+                .Select(g => g.Key.ToString() + "s").FirstOrDefault() ?? "";
+
+            // Month with most workout days
+            _peakMonth = workoutDays
+                .GroupBy(d => new { d.Year, d.Month })
+                .OrderByDescending(g => g.Count())
+                .Select(g => new DateTime(g.Key.Year, g.Key.Month, 1).ToString("MMM yyyy"))
+                .FirstOrDefault() ?? "";
+
+            // Avg workouts per week
+            var totalWeeks = Math.Max(1, (DateTime.Now - _firstDate).TotalDays / 7.0);
+            _avgWorkoutsPerWeek = Math.Round(_totalWorkouts / totalWeeks, 1);
+
+            // Max sets in a single session
+            var maxSetsGroup = _allRecords
+                .GroupBy(r => r.Date.Date)
+                .OrderByDescending(g => g.Count()).First();
+            _maxSetsInSession = maxSetsGroup.Count();
+            _maxSetsDate = maxSetsGroup.Key;
+
+            // Max reps for one exercise on one day
+            var maxRepsGroup = _allRecords
+                .GroupBy(r => new { r.Date.Date, r.ExerciseName })
+                .OrderByDescending(g => g.Sum(r => r.Reps)).First();
+            _maxRepsInSession = maxRepsGroup.Sum(r => r.Reps);
+            _maxRepsExercise = maxRepsGroup.Key.ExerciseName;
+            _maxRepsDate = maxRepsGroup.Key.Date;
+
+            // Heaviest single lift
+            var heaviest = _allRecords.Where(r => r.Weight > 0)
+                .OrderByDescending(r => r.Weight).FirstOrDefault();
+            _heaviestLift = heaviest?.Weight ?? 0;
+            _heaviestExercise = heaviest?.ExerciseName ?? "";
+
+            // Max volume in a single session
+            var maxVolGroup = _allRecords
+                .GroupBy(r => r.Date.Date)
+                .OrderByDescending(g => g.Sum(r => r.Weight * r.Reps)).First();
+            _maxVolumeInSession = maxVolGroup.Sum(r => r.Weight * r.Reps);
+            _maxVolumeDate = maxVolGroup.Key;
+
+            // Max exercises in a single session
+            _maxExercisesInSession = _allRecords
+                .GroupBy(r => r.Date.Date)
+                .Max(g => g.Select(r => r.ExerciseName).Distinct().Count());
+
+            // First exercise ever logged
+            _firstExercise = _allRecords
+                .OrderBy(r => r.Date).Select(r => r.ExerciseName).FirstOrDefault() ?? "";
+
+            // Total reps all time
+            _totalRepsAllTime = _allRecords.Sum(r => r.Reps);
         }
         catch (Exception ex)
         {
@@ -264,4 +495,48 @@ dotnet watch
     {
         _selectedMuscle = muscle;
     }
+
+    private async Task ShareProgress()
+    {
+        var stats = new
+        {
+            totalWorkouts = _totalWorkouts,
+            exerciseCount = _exerciseNames.Count,
+            totalVolume = _totalVolume,
+            totalSets = _totalSets,
+            totalReps = _totalRepsAllTime,
+            daysSinceStart = (DateTime.Now - _firstDate).Days,
+            sinceDate = _firstDate.ToString("MMM yyyy"),
+            longestStreak = _longestStreak,
+            longestBreak = _longestBreak,
+            favoriteExercise = _favoriteExercise,
+            mostImprovedExercise = _mostImprovedExercise,
+            mostImprovedGain = _mostImprovedGain,
+            heaviestLift = _heaviestLift,
+            heaviestExercise = _heaviestExercise,
+            avgWorkoutsPerWeek = _avgWorkoutsPerWeek,
+            busiestDay = _mostActiveWeekday
+        };
+        _previewImageUrl = await JS.InvokeAsync<string>("shareInterop.generatePreview", stats);
+        _showSharePreview = true;
+    }
+
+    private async Task ConfirmShare()
+    {
+        await JS.InvokeVoidAsync("shareInterop.shareFromPreview");
+        _showSharePreview = false;
+    }
+
+    private void ClosePreview()
+    {
+        _showSharePreview = false;
+    }
+
+    private string StatFontSize(string val) => val.Length switch
+    {
+        > 20 => "font-size:0.75rem",
+        > 14 => "font-size:0.9rem",
+        > 10 => "font-size:1rem",
+        _ => ""
+    };
 }
