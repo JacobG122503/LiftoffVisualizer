@@ -165,11 +165,52 @@ dotnet watch
                     <div class="more-stat-icon">🧩</div>
                     <div class="more-stat-value" style="@StatFontSize(_maxExercisesInSession.ToString())">@_maxExercisesInSession</div>
                     <div class="more-stat-label">Most Exercises in One Day</div>
+                    <div class="more-stat-date">set on @_maxExercisesDate.ToString("MMM d, yyyy")</div>
                 </div>
                 <div class="more-stat-card">
                     <div class="more-stat-icon">🌱</div>
                     <div class="more-stat-value" style="@StatFontSize(_firstExercise)">@_firstExercise</div>
                     <div class="more-stat-label">First Exercise Ever Logged</div>
+                </div>
+            </div>
+            <!-- New Stats Row -->
+            <div class="more-stats-grid">
+                <div class="more-stat-card">
+                    <div class="more-stat-icon">📅</div>
+                    <div class="more-stat-value" style="@StatFontSize(_mostConsistentMonth)">@(!string.IsNullOrEmpty(_mostConsistentMonth) ? _mostConsistentMonth : "-")</div>
+                    <div class="more-stat-label">Most Consistent Month</div>
+                </div>
+                <div class="more-stat-card">
+                    <div class="more-stat-icon">⏱️</div>
+                    <div class="more-stat-value">@(_avgWorkoutDuration > 0 ? _avgWorkoutDuration.ToString("N1") + " min" : "-")</div>
+                    <div class="more-stat-label">Avg Workout Duration</div>
+                </div>
+                <div class="more-stat-card">
+                    <div class="more-stat-icon">🌅</div>
+                    <div class="more-stat-value">@(_earliestWorkoutTime.HasValue ? DateTime.Today.Add(_earliestWorkoutTime.Value).ToString("h:mm tt") : "-")</div>
+                    <div class="more-stat-label">Earliest Workout Time</div>
+                    @if (_earliestWorkoutDate.HasValue) { <div class="more-stat-date">on @_earliestWorkoutDate.Value.ToString("MMM d, yyyy")</div> }
+                </div>
+                <div class="more-stat-card">
+                    <div class="more-stat-icon">🌙</div>
+                    <div class="more-stat-value">@(_latestWorkoutTime.HasValue ? DateTime.Today.Add(_latestWorkoutTime.Value).ToString("h:mm tt") : "-")</div>
+                    <div class="more-stat-label">Latest Workout Time</div>
+                    @if (_latestWorkoutDate.HasValue) { <div class="more-stat-date">on @_latestWorkoutDate.Value.ToString("MMM d, yyyy")</div> }
+                </div>
+                <div class="more-stat-card">
+                    <div class="more-stat-icon">🏷️</div>
+                    <div class="more-stat-value" style="@StatFontSize(_mostFrequentWorkoutName)">@_mostFrequentWorkoutName</div>
+                    <div class="more-stat-label">Most Frequent Workout Name</div>
+                </div>
+                <div class="more-stat-card">
+                    <div class="more-stat-icon">🏋️‍♂️</div>
+                    <div class="more-stat-value">@(_mostUsedWeight > 0 ? _mostUsedWeight.ToString("N0") : "-")</div>
+                    <div class="more-stat-label">Most Used Weight</div>
+                </div>
+                <div class="more-stat-card">
+                    <div class="more-stat-icon">🚴</div>
+                    <div class="more-stat-value">@(_totalDistance > 0 ? _totalDistance.ToString("N1") : "-")</div>
+                    <div class="more-stat-label">Total Distance</div>
                 </div>
             </div>
         </details>
@@ -285,8 +326,19 @@ dotnet watch
     private string _heaviestExercise = "";
     private double _maxVolumeInSession;
     private int _maxExercisesInSession;
+    private DateTime _maxExercisesDate;
     private string _firstExercise = "";
     private int _totalRepsAllTime;
+    // New extra stats
+    private string _mostConsistentMonth = "";
+    private double _avgWorkoutDuration;
+    private TimeSpan? _earliestWorkoutTime;
+    private DateTime? _earliestWorkoutDate;
+    private TimeSpan? _latestWorkoutTime;
+    private DateTime? _latestWorkoutDate;
+    private string _mostFrequentWorkoutName = "";
+    private double _mostUsedWeight;
+    private double _totalDistance;
 
     // Share preview
     private bool _showSharePreview = false;
@@ -466,9 +518,12 @@ dotnet watch
             _maxVolumeDate = maxVolGroup.Key;
 
             // Max exercises in a single session
-            _maxExercisesInSession = _allRecords
+            var maxExercisesGroup = _allRecords
                 .GroupBy(r => r.Date.Date)
-                .Max(g => g.Select(r => r.ExerciseName).Distinct().Count());
+                .OrderByDescending(g => g.Select(r => r.ExerciseName).Distinct().Count())
+                .FirstOrDefault();
+            _maxExercisesInSession = maxExercisesGroup != null ? maxExercisesGroup.Select(r => r.ExerciseName).Distinct().Count() : 0;
+            _maxExercisesDate = maxExercisesGroup != null ? maxExercisesGroup.Key : DateTime.MinValue;
 
             // First exercise ever logged
             _firstExercise = _allRecords
@@ -476,6 +531,62 @@ dotnet watch
 
             // Total reps all time
             _totalRepsAllTime = _allRecords.Sum(r => r.Reps);
+
+            // --- New extra stats ---
+            // 1. Most Consistent Month (highest % of days trained in month)
+            var monthGroups = workoutDays.GroupBy(d => new { d.Year, d.Month })
+                .Select(g => new {
+                    Year = g.Key.Year,
+                    Month = g.Key.Month,
+                    DaysTrained = g.Count(),
+                    DaysInMonth = DateTime.DaysInMonth(g.Key.Year, g.Key.Month)
+                })
+                .Select(x => new {
+                    x.Year,
+                    x.Month,
+                    Consistency = (double)x.DaysTrained / x.DaysInMonth
+                })
+                .OrderByDescending(x => x.Consistency)
+                .FirstOrDefault();
+            _mostConsistentMonth = monthGroups != null ? new DateTime(monthGroups.Year, monthGroups.Month, 1).ToString("MMM yyyy") : "";
+
+            // 2. Average Workout Duration (if Duration > 0)
+            // Parse Duration as double (minutes), skip invalid
+            var durations = _allRecords
+                .Select(r => new { r.Date, Minutes = LiftoffVisualizer.Pages.DurationParser.ParseToMinutes(r.Duration) })
+                .Where(x => x.Minutes > 0)
+                .GroupBy(x => x.Date.Date)
+                .Select(g => g.Max(x => x.Minutes));
+            _avgWorkoutDuration = durations.Any() ? durations.Average() : 0;
+
+            // 3. Earliest Workout Time
+            var earliestRecord = _allRecords.OrderBy(r => r.Date.TimeOfDay).FirstOrDefault();
+            _earliestWorkoutTime = earliestRecord != null ? earliestRecord.Date.TimeOfDay : (TimeSpan?)null;
+            _earliestWorkoutDate = earliestRecord?.Date.Date;
+
+            // 4. Latest Workout Time
+            var latestRecord = _allRecords.OrderByDescending(r => r.Date.TimeOfDay).FirstOrDefault();
+            _latestWorkoutTime = latestRecord != null ? latestRecord.Date.TimeOfDay : (TimeSpan?)null;
+            _latestWorkoutDate = latestRecord?.Date.Date;
+
+            // 5. Most Frequent Workout Name
+            // Most Frequent Workout Name (handle empty)
+            var mostFreqGroup = _allRecords
+                .Where(r => !string.IsNullOrWhiteSpace(r.WorkoutName))
+                .GroupBy(r => r.WorkoutName)
+                .OrderByDescending(g => g.Count())
+                .FirstOrDefault();
+            _mostFrequentWorkoutName = mostFreqGroup != null ? mostFreqGroup.Key : "-";
+
+            // 6. Most Used Weight
+            var weightGroups = _allRecords.Where(r => r.Weight > 0)
+                .GroupBy(r => r.Weight)
+                .OrderByDescending(g => g.Count())
+                .FirstOrDefault();
+            _mostUsedWeight = weightGroups?.Key ?? 0;
+
+            // 7. Total Distance (if Distance > 0)
+            _totalDistance = _allRecords.Where(r => r.Distance > 0).Sum(r => r.Distance);
         }
         catch (Exception ex)
         {
