@@ -2,9 +2,6 @@
 
 <div class="exercise-card">
     <div class="card-header">
-        <div class="card-icon-wrapper">
-            @((MarkupString)ExerciseIcons.GetSvgIcon(ExerciseName))
-        </div>
         <div class="card-title-area">
             <div class="card-title" title="@ExerciseName">@ExerciseName</div>
             <div class="card-muscle-tag">@WorkoutDataService.GetMuscleGroup(ExerciseName)</div>
@@ -81,6 +78,15 @@
     {
         _canvasId = $"chart-{Guid.NewGuid():N}";
         FilterData();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        FilterData();
+        if (_chartRendered)
+        {
+            await RenderChart();
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

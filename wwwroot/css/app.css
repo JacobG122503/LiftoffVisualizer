@@ -317,35 +317,13 @@ body {
     padding: 1.25rem 1.5rem 0.75rem;
 }
 
-.card-icon-wrapper {
-    width: 48px;
-    height: 48px;
-    border-radius: var(--radius-sm);
-    background: var(--primary-bg);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    color: var(--primary);
-    transition: background var(--transition);
-}
-
-.exercise-card:hover .card-icon-wrapper {
-    background: var(--primary-bg-hover);
-}
-
-.exercise-icon {
-    width: 28px;
-    height: 28px;
-}
-
 .card-title-area {
     flex: 1;
     min-width: 0;
 }
 
 .card-title {
-    font-size: 1rem;
+    font-size: 1.05rem;
     font-weight: 700;
     color: var(--text-primary);
     letter-spacing: -0.01em;

@@ -1,6 +1,6 @@
 ﻿<!-- 
 cd /Users/jacobg/Projects/Personal/LiftoffVisualizer
-dotnet run
+dotnet watch
 -->
 
 
@@ -81,6 +81,7 @@ dotnet run
                 @foreach (var exercise in _filteredExercises)
                 {
                     <LiftoffVisualizer.Components.ExerciseCard
+                        @key="@exercise"
                         ExerciseName="@exercise"
                         AllData="@GetSummaryData(exercise)" />
                 }
@@ -114,6 +115,9 @@ dotnet run
         .Where(e =>
             (_selectedMuscle == "All" || WorkoutDataService.GetMuscleGroup(e) == _selectedMuscle)
             && (string.IsNullOrWhiteSpace(_searchQuery) || e.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase))
+        )
+        .OrderByDescending(e =>
+            _summaryCache.TryGetValue(e, out var d) && d.Any() ? d.Max(s => s.Date) : DateTime.MinValue
         )
         .ToList();
 
