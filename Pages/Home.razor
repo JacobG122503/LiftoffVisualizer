@@ -14,13 +14,30 @@ dotnet watch
     {
         <div class="paste-landing">
             <h1 class="paste-title">Liftoff Visualizer</h1>
-            <p class="paste-subtitle">Paste your Liftoff CSV export below to visualize your workout history.</p>
-            <p class="paste-hint">In Liftoff: <strong>Profile → Export Workouts</strong> → copy the full CSV text and paste it here.</p>
+            <p class="paste-subtitle">Visualize your Liftoff workout history.</p>
+            <p class="paste-hint">In Liftoff: <strong>Profile → Export Workouts</strong> → upload or paste the CSV below.</p>
+
+            <label class="upload-zone @(_loading ? "upload-zone--parsing" : "")">
+                <InputFile OnChange="OnFileSelected" accept=".csv" disabled="@_loading" />
+                <div class="upload-zone-content">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    <span><strong>Upload CSV file</strong> or drag and drop</span>
+                    <span class="upload-hint">liftoff_workout_data.csv</span>
+                </div>
+            </label>
+
+            <div class="divider"><span>or paste CSV text</span></div>
+
             <textarea class="paste-input @(_loading ? "paste-input--parsing" : "")"
                       placeholder="Paste your CSV data here..."
                       @oninput="OnCsvInput"
                       disabled="@_loading"
-                      rows="12"></textarea>
+                      rows="8"></textarea>
+
             @if (_loading)
             {
                 <div class="paste-loading">
@@ -142,10 +159,42 @@ dotnet watch
         )
         .ToList();
 
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        _errorMessage = "";
+        _loading = true;
+        StateHasChanged();
+
+        try
+        {
+            using var stream = e.File.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+            using var reader = new System.IO.StreamReader(stream);
+            _csvInput = await reader.ReadToEndAsync();
+        }
+        catch
+        {
+            _errorMessage = "Could not read the file. Please try again.";
+            _loading = false;
+            return;
+        }
+
+        await LoadData();
+    }
+
     private async Task OnCsvInput(ChangeEventArgs e)
     {
         _csvInput = e.Value?.ToString() ?? "";
         _errorMessage = "";
+
+        if (string.IsNullOrWhiteSpace(_csvInput))
+        {
+            _loading = false;
+            _debounceCts?.Cancel();
+            return;
+        }
+
+        _loading = true;
+        StateHasChanged();
 
         _debounceCts?.Cancel();
         _debounceCts = new CancellationTokenSource();
