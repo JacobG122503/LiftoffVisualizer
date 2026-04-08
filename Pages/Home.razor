@@ -50,6 +50,44 @@ dotnet watch
             {
                 <div class="paste-error">@_errorMessage</div>
             }
+
+            @if (!string.IsNullOrEmpty(_pwaBrowser))
+            {
+                <div class="pwa-install-hint">
+                    <div class="pwa-install-hint-icon">📲</div>
+                    <div class="pwa-install-hint-body">
+                        <div class="pwa-install-hint-title">Add to Home Screen</div>
+                        @if (_pwaBrowser == "ios-safari")
+                        {
+                            <div class="pwa-install-hint-text">Tap the <strong>Share ⬆️</strong> button in Safari, then <strong>"Add to Home Screen"</strong>.</div>
+                        }
+                        else if (_pwaBrowser == "ios-chrome" || _pwaBrowser == "ios-edge")
+                        {
+                            <div class="pwa-install-hint-text">Tap the <strong>Share ⬆️</strong> button, then <strong>"Add to Home Screen"</strong>.</div>
+                        }
+                        else if (_pwaBrowser == "ios-firefox")
+                        {
+                            <div class="pwa-install-hint-text">Open in <strong>Safari</strong>, then tap <strong>Share ⬆️ → Add to Home Screen</strong>.</div>
+                        }
+                        else if (_pwaBrowser == "android-chrome")
+                        {
+                            <div class="pwa-install-hint-text">Tap the <strong>⋮ menu</strong> in Chrome, then <strong>"Add to Home screen"</strong> or <strong>"Install app"</strong>.</div>
+                        }
+                        else if (_pwaBrowser == "android-samsung")
+                        {
+                            <div class="pwa-install-hint-text">Tap the <strong>☰ menu</strong>, then <strong>"Add page to" → "Home screen"</strong>.</div>
+                        }
+                        else if (_pwaBrowser == "android-firefox")
+                        {
+                            <div class="pwa-install-hint-text">Tap the <strong>⋮ menu</strong>, then <strong>"Install"</strong> or <strong>"Add to Home screen"</strong>.</div>
+                        }
+                        else
+                        {
+                            <div class="pwa-install-hint-text">Open the <strong>browser menu</strong> and tap <strong>"Add to Home Screen"</strong> or <strong>"Install app"</strong>.</div>
+                        }
+                    </div>
+                </div>
+            }
         </div>
     }
     else
@@ -344,6 +382,9 @@ dotnet watch
     private bool _showSharePreview = false;
     private string _previewImageUrl = "";
 
+    // PWA install hint
+    private string _pwaBrowser = "";
+
     private List<string> _filteredExercises => _exerciseNames
         .Where(e =>
             (_selectedMuscle == "All" || WorkoutDataService.GetMuscleGroup(e) == _selectedMuscle)
@@ -353,6 +394,20 @@ dotnet watch
             _summaryCache.TryGetValue(e, out var d) && d.Any() ? d.Max(s => s.Date) : DateTime.MinValue
         )
         .ToList();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var isMobile = await JS.InvokeAsync<bool>("pwaHelper.isMobile");
+            var isStandalone = await JS.InvokeAsync<bool>("pwaHelper.isStandalone");
+            if (isMobile && !isStandalone)
+            {
+                _pwaBrowser = await JS.InvokeAsync<string>("pwaHelper.getBrowser");
+                StateHasChanged();
+            }
+        }
+    }
 
     private async Task OnFileSelected(InputFileChangeEventArgs e)
     {

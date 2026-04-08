@@ -1005,3 +1005,40 @@ details[open] .more-stats-toggle::before { transform: rotate(90deg); }
         grid-template-columns: 1fr;
     }
 }
+
+/* ── PWA Install Hint ──────────────────────────────────────── */
+.pwa-install-hint {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+    padding: 1rem 1.1rem;
+    background: var(--primary-bg);
+    border: 1px solid rgba(230, 81, 0, 0.2);
+    border-radius: var(--radius-md);
+    text-align: left;
+}
+
+.pwa-install-hint-icon {
+    font-size: 1.4rem;
+    flex-shrink: 0;
+    line-height: 1;
+    margin-top: 1px;
+}
+
+.pwa-install-hint-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 0.2rem;
+}
+
+.pwa-install-hint-text {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    line-height: 1.45;
+}
+
+.pwa-install-hint-text strong {
+    color: var(--text-primary);
+}
