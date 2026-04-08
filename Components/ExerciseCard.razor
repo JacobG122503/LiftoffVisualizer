@@ -1,6 +1,6 @@
 @inject IJSRuntime JS
 
-<div class="exercise-card">
+<div class="exercise-card" @onclick="OpenFullscreen" style="cursor:pointer">
     <div class="card-header">
         <div class="card-title-area">
             <div class="card-title" title="@ExerciseName">@ExerciseName</div>
@@ -8,7 +8,7 @@
         </div>
     </div>
 
-    <div class="time-range-btns">
+    <div class="time-range-btns" @onclick:stopPropagation="true">
         @foreach (var range in _timeRanges)
         {
             <button class="time-btn @(range.Days == _selectedDays ? "active" : "")"
@@ -18,7 +18,7 @@
         }
     </div>
 
-    <div class="metric-selector">
+    <div class="metric-selector" @onclick:stopPropagation="true">
         <button class="metric-btn @(_selectedMetric == "weight" ? "active" : "")"
                 @onclick='() => SetMetric("weight")'>Max Weight</button>
         <button class="metric-btn @(_selectedMetric == "volume" ? "active" : "")"
@@ -54,15 +54,79 @@
     }
 </div>
 
+@if (_fullscreen)
+{
+    <div class="fs-overlay" @onclick="CloseFullscreen">
+        <div class="fs-modal" @onclick:stopPropagation="true">
+            <div class="fs-header">
+                <div>
+                    <div class="fs-title">@ExerciseName</div>
+                    <div class="card-muscle-tag">@WorkoutDataService.GetMuscleGroup(ExerciseName)</div>
+                </div>
+                <button class="fs-close" @onclick="CloseFullscreen" title="Close">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="fs-controls">
+                <div class="time-range-btns">
+                    @foreach (var range in _timeRanges)
+                    {
+                        <button class="time-btn @(range.Days == _selectedDays ? "active" : "")"
+                                @onclick="() => SetTimeRangeFullscreen(range.Days)">
+                            @range.Label
+                        </button>
+                    }
+                </div>
+                <div class="metric-selector">
+                    <button class="metric-btn @(_selectedMetric == "weight" ? "active" : "")"
+                            @onclick='() => SetMetricFullscreen("weight")'>Max Weight</button>
+                    <button class="metric-btn @(_selectedMetric == "volume" ? "active" : "")"
+                            @onclick='() => SetMetricFullscreen("volume")'>Volume</button>
+                    <button class="metric-btn @(_selectedMetric == "reps" ? "active" : "")"
+                            @onclick='() => SetMetricFullscreen("reps")'>Total Reps</button>
+                </div>
+            </div>
+            <div class="fs-chart-container">
+                <canvas id="@_fullscreenCanvasId"></canvas>
+            </div>
+            @if (_filteredData.Any())
+            {
+                <div class="card-stats fs-stats">
+                    <div class="card-stat">
+                        <div class="card-stat-value">@(_filteredData.Max(d => d.MaxWeight)) lbs</div>
+                        <div class="card-stat-label">Best Weight</div>
+                    </div>
+                    <div class="card-stat">
+                        <div class="card-stat-value">@(_filteredData.Max(d => d.TotalVolume).ToString("N0")) lbs</div>
+                        <div class="card-stat-label">Best Volume</div>
+                    </div>
+                    <div class="card-stat">
+                        <div class="card-stat-value">@_filteredData.Count</div>
+                        <div class="card-stat-label">Sessions</div>
+                    </div>
+                    <div class="card-stat">
+                        <div class="card-stat-value">@_filteredData.Max(d => d.TotalSets)</div>
+                        <div class="card-stat-label">Max Sets</div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
 @code {
     [Parameter] public string ExerciseName { get; set; } = "";
     [Parameter] public List<ExerciseSummary> AllData { get; set; } = new();
 
     private string _canvasId = "";
+    private string _fullscreenCanvasId = "";
     private int _selectedDays = 0; // 0 = all time
     private string _selectedMetric = "weight";
     private List<ExerciseSummary> _filteredData = new();
     private bool _chartRendered = false;
+    private bool _fullscreen = false;
 
     private static readonly (string Label, int Days)[] _timeRanges = new[]
     {
@@ -77,6 +141,7 @@
     protected override void OnInitialized()
     {
         _canvasId = $"chart-{Guid.NewGuid():N}";
+        _fullscreenCanvasId = $"chart-fs-{Guid.NewGuid():N}";
         FilterData();
     }
 
@@ -172,5 +237,79 @@
         {
             // Canvas may not be ready yet
         }
+    }
+
+    private async Task OpenFullscreen()
+    {
+        _fullscreen = true;
+        StateHasChanged();
+        // Wait for the modal canvas to render
+        await Task.Delay(50);
+        await RenderChartOnCanvas(_fullscreenCanvasId);
+    }
+
+    private async Task CloseFullscreen()
+    {
+        _fullscreen = false;
+        await JS.InvokeVoidAsync("chartInterop.destroyChart", _fullscreenCanvasId);
+    }
+
+    private async Task RenderChartOnCanvas(string canvasId)
+    {
+        if (!_filteredData.Any()) return;
+
+        var labels = _filteredData.Select(d => d.Date.ToString("yyyy-MM-dd")).ToArray();
+        var data = _selectedMetric switch
+        {
+            "volume" => _filteredData.Select(d => d.TotalVolume).ToArray(),
+            "reps" => _filteredData.Select(d => (double)d.TotalReps).ToArray(),
+            _ => _filteredData.Select(d => d.MaxWeight).ToArray()
+        };
+        var metricLabel = _selectedMetric switch
+        {
+            "volume" => "Total Volume (lbs)",
+            "reps" => "Total Reps",
+            _ => "Max Weight (lbs)"
+        };
+        var config = new
+        {
+            type = "line",
+            labels,
+            datasets = new[]
+            {
+                new
+                {
+                    label = metricLabel,
+                    data,
+                    borderColor = "#E65100",
+                    backgroundColor = "rgba(230,81,0,0.12)",
+                    pointBackgroundColor = "#E65100",
+                    pointBorderColor = "#fff",
+                    fill = true,
+                    tension = 0.3
+                }
+            },
+            beginAtZero = false
+        };
+        try
+        {
+            await JS.InvokeVoidAsync("chartInterop.createChart", canvasId, config);
+        }
+        catch { }
+    }
+
+    private async Task SetTimeRangeFullscreen(int days)
+    {
+        _selectedDays = days;
+        FilterData();
+        await RenderChart();
+        await RenderChartOnCanvas(_fullscreenCanvasId);
+    }
+
+    private async Task SetMetricFullscreen(string metric)
+    {
+        _selectedMetric = metric;
+        await RenderChart();
+        await RenderChartOnCanvas(_fullscreenCanvasId);
     }
 }

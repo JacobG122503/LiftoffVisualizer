@@ -310,6 +310,109 @@ body {
     padding: 1.25rem 1.5rem 0.75rem;
 }
 
+.expand-btn {
+    background: none;
+    border: none;
+    padding: 4px;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s, background 0.15s;
+    flex-shrink: 0;
+}
+
+.expand-btn:hover {
+    color: var(--primary);
+    background: var(--primary-bg);
+}
+
+/* Fullscreen overlay */
+.fs-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+}
+
+.fs-modal {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card-hover);
+    width: 95vw;
+    max-width: 1400px;
+    height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.fs-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.fs-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.fs-close {
+    background: none;
+    border: none;
+    padding: 6px;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    transition: color 0.15s, background 0.15s;
+}
+
+.fs-close:hover {
+    color: var(--primary);
+    background: var(--primary-bg);
+}
+
+.fs-chart-container {
+    flex: 1;
+    padding: 1rem 1.5rem;
+    position: relative;
+    min-height: 0;
+}
+
+.fs-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem 0.5rem;
+    align-items: center;
+}
+
+.fs-stats {
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.fs-chart-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
 .card-title-area {
     flex: 1;
     min-width: 0;
