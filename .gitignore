@@ -1,0 +1,25 @@
+## .NET / Blazor
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+
+## Publish output
+publish/
+wwwroot/css/bootstrap/
+
+## Rider / JetBrains
+.idea/
+*.DotSettings.user
+
+## VS Code
+.vscode/
+
+## macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db

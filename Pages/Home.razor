@@ -1,0 +1,154 @@
+﻿<!-- 
+cd /Users/jacobg/Projects/Personal/LiftoffVisualizer
+dotnet run
+-->
+
+
+@page "/"
+@inject WorkoutDataService DataService
+
+<PageTitle>Liftoff Visualizer</PageTitle>
+
+<div class="page-container">
+    @if (_loading)
+    {
+        <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Loading your workout data...</div>
+        </div>
+    }
+    else
+    {
+        <div class="page-header">
+            <h1 class="page-title">Your Lifting Journey</h1>
+            <p class="page-subtitle">
+                @_totalWorkouts workouts tracked across @_exerciseNames.Count exercises since @_firstDate.ToString("MMM yyyy")
+            </p>
+        </div>
+
+        <!-- Summary Stats -->
+        <div class="summary-grid">
+            <div class="summary-card">
+                <div class="summary-card-value">@_totalWorkouts</div>
+                <div class="summary-card-label">Total Workouts</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-card-value">@_exerciseNames.Count</div>
+                <div class="summary-card-label">Exercises</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-card-value">@_totalVolume.ToString("N0")</div>
+                <div class="summary-card-label">Total Lbs Lifted</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-card-value">@_totalSets.ToString("N0")</div>
+                <div class="summary-card-label">Total Sets</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-card-value">@((DateTime.Now - _firstDate).Days)</div>
+                <div class="summary-card-label">Days Since Start</div>
+            </div>
+        </div>
+
+        <!-- Muscle Group Filter Pills -->
+        <div class="muscle-pills">
+            <button class="muscle-pill @(_selectedMuscle == "All" ? "active" : "")"
+                    @onclick='() => FilterByMuscle("All")'>
+                All <span class="pill-count">@_exerciseNames.Count</span>
+            </button>
+            @foreach (var mg in _muscleGroups.OrderBy(m => m.Key))
+            {
+                <button class="muscle-pill @(_selectedMuscle == mg.Key ? "active" : "")"
+                        @onclick="() => FilterByMuscle(mg.Key)">
+                    @mg.Key <span class="pill-count">@mg.Value</span>
+                </button>
+            }
+        </div>
+
+        <!-- Search -->
+        <div class="filter-bar">
+            <div class="search-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" placeholder="Search exercises..."
+                       @bind="_searchQuery" @bind:event="oninput" />
+            </div>
+        </div>
+
+        <!-- Exercise Cards Grid -->
+        @if (_filteredExercises.Any())
+        {
+            <div class="exercise-grid">
+                @foreach (var exercise in _filteredExercises)
+                {
+                    <LiftoffVisualizer.Components.ExerciseCard
+                        ExerciseName="@exercise"
+                        AllData="@GetSummaryData(exercise)" />
+                }
+            </div>
+        }
+        else
+        {
+            <div class="no-data">
+                <p>No exercises found matching your filters.</p>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private bool _loading = true;
+    private List<string> _exerciseNames = new();
+    private List<WorkoutRecord> _allRecords = new();
+    private Dictionary<string, List<ExerciseSummary>> _summaryCache = new();
+    private Dictionary<string, int> _muscleGroups = new();
+
+    private string _selectedMuscle = "All";
+    private string _searchQuery = "";
+
+    private int _totalWorkouts;
+    private double _totalVolume;
+    private int _totalSets;
+    private DateTime _firstDate;
+
+    private List<string> _filteredExercises => _exerciseNames
+        .Where(e =>
+            (_selectedMuscle == "All" || WorkoutDataService.GetMuscleGroup(e) == _selectedMuscle)
+            && (string.IsNullOrWhiteSpace(_searchQuery) || e.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase))
+        )
+        .ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _allRecords = await DataService.GetRecordsAsync();
+        _exerciseNames = await DataService.GetExerciseNamesAsync();
+
+        // Pre-cache all summaries
+        foreach (var name in _exerciseNames)
+        {
+            _summaryCache[name] = await DataService.GetExerciseSummariesAsync(name);
+        }
+
+        // Calculate muscle group counts (number of unique exercises per group)
+        _muscleGroups = _exerciseNames
+            .GroupBy(WorkoutDataService.GetMuscleGroup)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        // Stats
+        _totalWorkouts = _allRecords.Select(r => r.Date.Date).Distinct().Count();
+        _totalVolume = _allRecords.Sum(r => r.Weight * r.Reps);
+        _totalSets = _allRecords.Count;
+        _firstDate = _allRecords.Min(r => r.Date);
+
+        _loading = false;
+    }
+
+    private List<ExerciseSummary> GetSummaryData(string exerciseName)
+    {
+        return _summaryCache.TryGetValue(exerciseName, out var data) ? data : new();
+    }
+
+    private void FilterByMuscle(string muscle)
+    {
+        _selectedMuscle = muscle;
+    }
+}

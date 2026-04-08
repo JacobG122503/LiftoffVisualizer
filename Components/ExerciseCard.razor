@@ -1,0 +1,170 @@
+@inject IJSRuntime JS
+
+<div class="exercise-card">
+    <div class="card-header">
+        <div class="card-icon-wrapper">
+            @((MarkupString)ExerciseIcons.GetSvgIcon(ExerciseName))
+        </div>
+        <div class="card-title-area">
+            <div class="card-title" title="@ExerciseName">@ExerciseName</div>
+            <div class="card-muscle-tag">@WorkoutDataService.GetMuscleGroup(ExerciseName)</div>
+        </div>
+    </div>
+
+    <div class="time-range-btns">
+        @foreach (var range in _timeRanges)
+        {
+            <button class="time-btn @(range.Days == _selectedDays ? "active" : "")"
+                    @onclick="() => SetTimeRange(range.Days)">
+                @range.Label
+            </button>
+        }
+    </div>
+
+    <div class="metric-selector">
+        <button class="metric-btn @(_selectedMetric == "weight" ? "active" : "")"
+                @onclick='() => SetMetric("weight")'>Max Weight</button>
+        <button class="metric-btn @(_selectedMetric == "volume" ? "active" : "")"
+                @onclick='() => SetMetric("volume")'>Volume</button>
+        <button class="metric-btn @(_selectedMetric == "reps" ? "active" : "")"
+                @onclick='() => SetMetric("reps")'>Total Reps</button>
+    </div>
+
+    <div class="chart-container">
+        <canvas id="@_canvasId"></canvas>
+    </div>
+
+    @if (_filteredData.Any())
+    {
+        <div class="card-stats">
+            <div class="card-stat">
+                <div class="card-stat-value">@(_filteredData.Max(d => d.MaxWeight)) lbs</div>
+                <div class="card-stat-label">Best Weight</div>
+            </div>
+            <div class="card-stat">
+                <div class="card-stat-value">@(_filteredData.Max(d => d.TotalVolume).ToString("N0")) lbs</div>
+                <div class="card-stat-label">Best Volume</div>
+            </div>
+            <div class="card-stat">
+                <div class="card-stat-value">@_filteredData.Count</div>
+                <div class="card-stat-label">Sessions</div>
+            </div>
+            <div class="card-stat">
+                <div class="card-stat-value">@_filteredData.Max(d => d.TotalSets)</div>
+                <div class="card-stat-label">Max Sets</div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string ExerciseName { get; set; } = "";
+    [Parameter] public List<ExerciseSummary> AllData { get; set; } = new();
+
+    private string _canvasId = "";
+    private int _selectedDays = 0; // 0 = all time
+    private string _selectedMetric = "weight";
+    private List<ExerciseSummary> _filteredData = new();
+    private bool _chartRendered = false;
+
+    private static readonly (string Label, int Days)[] _timeRanges = new[]
+    {
+        ("15D", 15),
+        ("30D", 30),
+        ("90D", 90),
+        ("6M", 180),
+        ("1Y", 365),
+        ("All", 0)
+    };
+
+    protected override void OnInitialized()
+    {
+        _canvasId = $"chart-{Guid.NewGuid():N}";
+        FilterData();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender || !_chartRendered)
+        {
+            await RenderChart();
+            _chartRendered = true;
+        }
+    }
+
+    private void FilterData()
+    {
+        if (_selectedDays == 0)
+        {
+            _filteredData = AllData;
+        }
+        else
+        {
+            var cutoff = DateTime.Now.AddDays(-_selectedDays);
+            _filteredData = AllData.Where(d => d.Date >= cutoff).ToList();
+        }
+    }
+
+    private async Task SetTimeRange(int days)
+    {
+        _selectedDays = days;
+        FilterData();
+        await RenderChart();
+    }
+
+    private async Task SetMetric(string metric)
+    {
+        _selectedMetric = metric;
+        await RenderChart();
+    }
+
+    private async Task RenderChart()
+    {
+        if (!_filteredData.Any()) return;
+
+        var labels = _filteredData.Select(d => d.Date.ToString("MMM dd")).ToArray();
+        var data = _selectedMetric switch
+        {
+            "volume" => _filteredData.Select(d => d.TotalVolume).ToArray(),
+            "reps" => _filteredData.Select(d => (double)d.TotalReps).ToArray(),
+            _ => _filteredData.Select(d => d.MaxWeight).ToArray()
+        };
+
+        var metricLabel = _selectedMetric switch
+        {
+            "volume" => "Total Volume (lbs)",
+            "reps" => "Total Reps",
+            _ => "Max Weight (lbs)"
+        };
+
+        var config = new
+        {
+            type = "line",
+            labels,
+            datasets = new[]
+            {
+                new
+                {
+                    label = metricLabel,
+                    data,
+                    borderColor = "#E65100",
+                    backgroundColor = "rgba(230,81,0,0.12)",
+                    pointBackgroundColor = "#E65100",
+                    pointBorderColor = "#fff",
+                    fill = true,
+                    tension = 0.3
+                }
+            },
+            beginAtZero = false
+        };
+
+        try
+        {
+            await JS.InvokeVoidAsync("chartInterop.createChart", _canvasId, config);
+        }
+        catch
+        {
+            // Canvas may not be ready yet
+        }
+    }
+}
