@@ -103,17 +103,10 @@ body {
     letter-spacing: -0.02em;
 }
 
-.navbar-brand .logo-icon {
-    width: 36px;
-    height: 36px;
-    background: linear-gradient(135deg, var(--primary), var(--primary-light));
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: 800;
-    font-size: 1.1rem;
+.navbar-brand .navbar-logo {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
 }
 
 .navbar-right {
