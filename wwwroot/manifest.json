@@ -1,8 +1,9 @@
 {
   "name": "Liftoff Visualizer",
-  "short_name": "Liftoff",
+  "short_name": "Liftoff Visualizer",
   "description": "Visualize your Liftoff workout data",
-  "start_url": "/",
+  "start_url": ".",
+  "scope": ".",
   "display": "standalone",
   "background_color": "#1a0a00",
   "theme_color": "#E65100",
