@@ -225,13 +225,13 @@ dotnet watch
                 </div>
                 <div class="more-stat-card">
                     <div class="more-stat-icon">🌅</div>
-                    <div class="more-stat-value">@(_earliestWorkoutTime.HasValue ? DateTime.Today.Add(_earliestWorkoutTime.Value).ToString("h:mm tt") : "-")</div>
+                    <div class="more-stat-value" style="@StatFontSize(_earliestWorkoutTime.HasValue ? DateTime.Today.Add(_earliestWorkoutTime.Value).ToString("h:mm tt") : "-")">@(_earliestWorkoutTime.HasValue ? DateTime.Today.Add(_earliestWorkoutTime.Value).ToString("h:mm tt") : "-")</div>
                     <div class="more-stat-label">Earliest Workout Time</div>
                     @if (_earliestWorkoutDate.HasValue) { <div class="more-stat-date">on @_earliestWorkoutDate.Value.ToString("MMM d, yyyy")</div> }
                 </div>
                 <div class="more-stat-card">
                     <div class="more-stat-icon">🌙</div>
-                    <div class="more-stat-value">@(_latestWorkoutTime.HasValue ? DateTime.Today.Add(_latestWorkoutTime.Value).ToString("h:mm tt") : "-")</div>
+                    <div class="more-stat-value" style="@StatFontSize(_latestWorkoutTime.HasValue ? DateTime.Today.Add(_latestWorkoutTime.Value).ToString("h:mm tt") : "-")">@(_latestWorkoutTime.HasValue ? DateTime.Today.Add(_latestWorkoutTime.Value).ToString("h:mm tt") : "-")</div>
                     <div class="more-stat-label">Latest Workout Time</div>
                     @if (_latestWorkoutDate.HasValue) { <div class="more-stat-date">on @_latestWorkoutDate.Value.ToString("MMM d, yyyy")</div> }
                 </div>
@@ -277,6 +277,15 @@ dotnet watch
             </div>
         </div>
 
+        <!-- Global Metric Selector -->
+        <div class="metric-selector global-metric-selector">
+            @foreach (var opt in _metricOptions)
+            {
+                <button class="metric-btn @(_globalMetric == opt.Key ? "active" : "")"
+                        @onclick="() => SetGlobalMetric(opt.Key)">@opt.Label</button>
+            }
+        </div>
+
         <!-- Exercise Cards Grid -->
         @if (_filteredExercises.Any())
         {
@@ -286,7 +295,8 @@ dotnet watch
                     <LiftoffVisualizer.Components.ExerciseCard
                         @key="@exercise"
                         ExerciseName="@exercise"
-                        AllData="@GetSummaryData(exercise)" />
+                        AllData="@GetSummaryData(exercise)"
+                        MetricOverride="@_globalMetric" />
                 }
             </div>
         }
@@ -339,6 +349,14 @@ dotnet watch
 
     private string _selectedMuscle = "All";
     private string _searchQuery = "";
+    private string _globalMetric = "weight";
+    private static readonly (string Key, string Label)[] _metricOptions = new[]
+    {
+        ("weight", "Max Weight"),
+        ("volume", "Volume"),
+        ("reps", "Total Reps"),
+        ("est1rm", "Calc Max")
+    };
 
     private int _totalWorkouts;
     private double _totalVolume;
@@ -705,4 +723,9 @@ dotnet watch
         > 10 => "font-size:1rem",
         _ => ""
     };
+
+    private void SetGlobalMetric(string metric)
+    {
+        _globalMetric = metric;
+    }
 }

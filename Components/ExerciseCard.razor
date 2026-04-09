@@ -123,6 +123,7 @@
 @code {
     [Parameter] public string ExerciseName { get; set; } = "";
     [Parameter] public List<ExerciseSummary> AllData { get; set; } = new();
+    [Parameter] public string? MetricOverride { get; set; }
 
     private string _canvasId = "";
     private string _fullscreenCanvasId = "";
@@ -131,6 +132,10 @@
     private List<ExerciseSummary> _filteredData = new();
     private bool _chartRendered = false;
     private bool _fullscreen = false;
+
+    private string _prevMetricOverride = "";
+
+    private string ActiveMetric => _selectedMetric;
 
     private static readonly (string Label, int Days)[] _timeRanges = new[]
     {
@@ -151,6 +156,12 @@
 
     protected override async Task OnParametersSetAsync()
     {
+        // Sync local metric when global override changes
+        if (MetricOverride != null && MetricOverride != _prevMetricOverride)
+        {
+            _selectedMetric = MetricOverride;
+            _prevMetricOverride = MetricOverride;
+        }
         FilterData();
         if (_chartRendered)
         {
@@ -218,14 +229,14 @@
         if (!_filteredData.Any()) return;
 
         var labels = _filteredData.Select(d => d.Date.ToString("yyyy-MM-dd")).ToArray();
-        var data = _selectedMetric switch
+        var data = ActiveMetric switch
         {
             "volume"  => _filteredData.Select(d => d.TotalVolume).ToArray(),
             "reps"    => _filteredData.Select(d => (double)d.TotalReps).ToArray(),
             "est1rm"  => _filteredData.Select(d => Math.Round(d.MaxEstimated1RM, 1)).ToArray(),
             _         => _filteredData.Select(d => d.MaxWeight).ToArray()
         };
-        var metricLabel = _selectedMetric switch
+        var metricLabel = ActiveMetric switch
         {
             "volume"  => "Total Volume (lbs)",
             "reps"    => "Total Reps",
