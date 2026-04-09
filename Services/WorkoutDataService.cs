@@ -67,17 +67,81 @@ public class WorkoutDataService
         return grouped;
     }
 
+    private static readonly Dictionary<string, string> _exerciseMuscleMap = new(StringComparer.OrdinalIgnoreCase)
+    {
+        // Chest
+        { "bench press", "Chest" },
+        { "incline bench press", "Chest" },
+        { "decline bench press", "Chest" },
+        { "dumbbell press", "Chest" },
+        { "chest fly", "Chest" },
+        { "pec deck", "Chest" },
+        { "push up", "Chest" },
+        // Back
+        { "barbell row", "Back" },
+        { "dumbbell row", "Back" },
+        { "lat pulldown", "Back" },
+        { "pull up", "Back" },
+        { "chin up", "Back" },
+        { "seated row", "Back" },
+        { "t-bar row", "Back" },
+        // Shoulders
+        { "shoulder press", "Shoulders" },
+        { "overhead press", "Shoulders" },
+        { "lateral raise", "Shoulders" },
+        { "front raise", "Shoulders" },
+        { "rear delt", "Shoulders" },
+        // Biceps
+        { "bicep curl", "Biceps" },
+        { "barbell curl", "Biceps" },
+        { "dumbbell curl", "Biceps" },
+        { "preacher curl", "Biceps" },
+        // Triceps
+        { "tricep extension", "Triceps" },
+        { "tricep pushdown", "Triceps" },
+        { "skullcrusher", "Triceps" },
+        { "overhead tricep", "Triceps" },
+        // Legs
+        { "squat", "Legs" },
+        { "leg press", "Legs" },
+        { "leg extension", "Legs" },
+        { "leg curl", "Legs" },
+        { "deadlift", "Legs" },
+        { "hack squat", "Legs" },
+        { "lunge", "Legs" },
+        // Calves
+        { "calf raise", "Calves" },
+        // Abs
+        { "crunch", "Abs" },
+        { "plank", "Abs" },
+        { "sit up", "Abs" },
+        // Traps/Forearms
+        { "shrug", "Forearms/Traps" },
+        { "wrist curl", "Forearms/Traps" },
+        // Cardio
+        { "treadmill", "Cardio" },
+        { "cycling", "Cardio" },
+    };
+
     public static string GetMuscleGroup(string exerciseName)
     {
+        if (string.IsNullOrWhiteSpace(exerciseName)) return "Other";
         var name = exerciseName.ToLowerInvariant();
+        // Try dictionary match (contains)
+        foreach (var kvp in _exerciseMuscleMap)
+        {
+            if (name.Contains(kvp.Key))
+                return kvp.Value;
+        }
+        // Fallback: substring logic
         if (name.Contains("curl") || name.Contains("bicep")) return "Biceps";
         if (name.Contains("tricep") || name.Contains("pushdown") || name.Contains("dip")) return "Triceps";
         if (name.Contains("bench") || name.Contains("chest") || name.Contains("fly")) return "Chest";
         if (name.Contains("shoulder") || name.Contains("lateral raise")) return "Shoulders";
         if (name.Contains("row") || name.Contains("pulldown") || name.Contains("pull up") || name.Contains("chin up") || name.Contains("lat")) return "Back";
-        if (name.Contains("squat") || name.Contains("leg press") || name.Contains("leg ext") || name.Contains("leg curl") || name.Contains("deadlift") || name.Contains("hack")) return "Legs";
+        if (name.Contains("squat") || name.Contains("leg press") || name.Contains("leg ext") || name.Contains("leg curl") || name.Contains("deadlift") || name.Contains("hack") || name.Contains("lunge")) return "Legs";
         if (name.Contains("calf")) return "Calves";
-        if (name.Contains("crunch") || name.Contains("plank")) return "Abs";
+        if (name.Contains("crunch") || name.Contains("plank") || name.Contains("sit up")) return "Abs";
         if (name.Contains("shrug") || name.Contains("wrist")) return "Forearms/Traps";
         if (name.Contains("treadmill") || name.Contains("cycling")) return "Cardio";
         return "Other";
