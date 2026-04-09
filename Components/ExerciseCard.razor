@@ -25,6 +25,8 @@
                 @onclick='() => SetMetric("volume")'>Volume</button>
         <button class="metric-btn @(_selectedMetric == "reps" ? "active" : "")"
                 @onclick='() => SetMetric("reps")'>Total Reps</button>
+        <button class="metric-btn @(_selectedMetric == "est1rm" ? "active" : "")"
+                @onclick='() => SetMetric("est1rm")'>Calc Max</button>
     </div>
 
     <div class="chart-container">
@@ -86,6 +88,8 @@
                             @onclick='() => SetMetricFullscreen("volume")'>Volume</button>
                     <button class="metric-btn @(_selectedMetric == "reps" ? "active" : "")"
                             @onclick='() => SetMetricFullscreen("reps")'>Total Reps</button>
+                    <button class="metric-btn @(_selectedMetric == "est1rm" ? "active" : "")"
+                            @onclick='() => SetMetricFullscreen("est1rm")'>Calc Max</button>
                 </div>
             </div>
             <div class="fs-chart-container">
@@ -191,52 +195,7 @@
 
     private async Task RenderChart()
     {
-        if (!_filteredData.Any()) return;
-
-        var labels = _filteredData.Select(d => d.Date.ToString("yyyy-MM-dd")).ToArray();
-        var data = _selectedMetric switch
-        {
-            "volume" => _filteredData.Select(d => d.TotalVolume).ToArray(),
-            "reps" => _filteredData.Select(d => (double)d.TotalReps).ToArray(),
-            _ => _filteredData.Select(d => d.MaxWeight).ToArray()
-        };
-
-        var metricLabel = _selectedMetric switch
-        {
-            "volume" => "Total Volume (lbs)",
-            "reps" => "Total Reps",
-            _ => "Max Weight (lbs)"
-        };
-
-        var config = new
-        {
-            type = "line",
-            labels,
-            datasets = new[]
-            {
-                new
-                {
-                    label = metricLabel,
-                    data,
-                    borderColor = "#E65100",
-                    backgroundColor = "rgba(230,81,0,0.12)",
-                    pointBackgroundColor = "#E65100",
-                    pointBorderColor = "#fff",
-                    fill = true,
-                    tension = 0.3
-                }
-            },
-            beginAtZero = false
-        };
-
-        try
-        {
-            await JS.InvokeVoidAsync("chartInterop.createChart", _canvasId, config);
-        }
-        catch
-        {
-            // Canvas may not be ready yet
-        }
+        await RenderChartOnCanvas(_canvasId);
     }
 
     private async Task OpenFullscreen()
@@ -261,41 +220,77 @@
         var labels = _filteredData.Select(d => d.Date.ToString("yyyy-MM-dd")).ToArray();
         var data = _selectedMetric switch
         {
-            "volume" => _filteredData.Select(d => d.TotalVolume).ToArray(),
-            "reps" => _filteredData.Select(d => (double)d.TotalReps).ToArray(),
-            _ => _filteredData.Select(d => d.MaxWeight).ToArray()
+            "volume"  => _filteredData.Select(d => d.TotalVolume).ToArray(),
+            "reps"    => _filteredData.Select(d => (double)d.TotalReps).ToArray(),
+            "est1rm"  => _filteredData.Select(d => Math.Round(d.MaxEstimated1RM, 1)).ToArray(),
+            _         => _filteredData.Select(d => d.MaxWeight).ToArray()
         };
         var metricLabel = _selectedMetric switch
         {
-            "volume" => "Total Volume (lbs)",
-            "reps" => "Total Reps",
-            _ => "Max Weight (lbs)"
+            "volume"  => "Total Volume (lbs)",
+            "reps"    => "Total Reps",
+            "est1rm"  => "Est. 1RM (lbs)",
+            _         => "Max Weight (lbs)"
         };
-        var config = new
+
+        var datasets = new System.Collections.Generic.List<object>
         {
-            type = "line",
-            labels,
-            datasets = new[]
+            new
             {
-                new
-                {
-                    label = metricLabel,
-                    data,
-                    borderColor = "#E65100",
-                    backgroundColor = "rgba(230,81,0,0.12)",
-                    pointBackgroundColor = "#E65100",
-                    pointBorderColor = "#fff",
-                    fill = true,
-                    tension = 0.3
-                }
-            },
-            beginAtZero = false
+                label = metricLabel,
+                data,
+                borderColor = "#E65100",
+                backgroundColor = "rgba(230,81,0,0.12)",
+                pointBackgroundColor = "#E65100",
+                pointBorderColor = "#fff",
+                fill = true,
+                tension = 0.3
+            }
         };
+
+        if (data.Length >= 2)
+        {
+            var trend = ComputeTrendLine(data);
+            datasets.Add(new
+            {
+                label = "Trend",
+                data = trend,
+                borderColor = "rgba(150,150,150,0.6)",
+                backgroundColor = "transparent",
+                pointBackgroundColor = "transparent",
+                pointBorderColor = "transparent",
+                fill = false,
+                tension = 0.0,
+                borderDash = new[] { 6, 4 },
+                pointRadius = 0,
+                pointHoverRadius = 0
+            });
+        }
+
+        var config = new { type = "line", labels, datasets, beginAtZero = false };
         try
         {
             await JS.InvokeVoidAsync("chartInterop.createChart", canvasId, config);
         }
         catch { }
+    }
+
+    private static double[] ComputeTrendLine(double[] values)
+    {
+        int n = values.Length;
+        double sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+        for (int i = 0; i < n; i++)
+        {
+            sumX  += i;
+            sumY  += values[i];
+            sumXY += i * values[i];
+            sumX2 += (double)i * i;
+        }
+        double denom = n * sumX2 - sumX * sumX;
+        if (denom == 0) return values.Select(_ => Math.Round(sumY / n, 1)).ToArray();
+        double slope     = (n * sumXY - sumX * sumY) / denom;
+        double intercept = (sumY - slope * sumX) / n;
+        return Enumerable.Range(0, n).Select(i => Math.Round(intercept + slope * i, 1)).ToArray();
     }
 
     private async Task SetTimeRangeFullscreen(int days)

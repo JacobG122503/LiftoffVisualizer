@@ -49,7 +49,10 @@ public class WorkoutDataService
                 TotalVolume = g.Sum(r => r.Weight * r.Reps),
                 TotalReps = g.Sum(r => r.Reps),
                 TotalSets = g.Count(),
-                AvgWeight = g.Average(r => r.Weight)
+                AvgWeight = g.Average(r => r.Weight),
+                MaxEstimated1RM = g.Max(r => r.Weight > 0 && r.Reps > 0
+                    ? r.Weight * (1 + r.Reps / 30.0)
+                    : r.Weight)
             })
             .OrderBy(s => s.Date)
             .ToList();
