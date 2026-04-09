@@ -768,6 +768,29 @@ details[open] .more-stats-toggle::before { transform: rotate(90deg); }
     position: relative;
 }
 
+.chart-no-data {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    font-weight: 500;
+    pointer-events: none;
+}
+
+.chart-no-data svg {
+    opacity: 0.45;
+}
+
+.card--no-data {
+    opacity: 0.55;
+    filter: grayscale(0.6);
+}
+
 .chart-container canvas {
     width: 100% !important;
     height: 100% !important;

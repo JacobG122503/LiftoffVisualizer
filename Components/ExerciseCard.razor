@@ -1,12 +1,12 @@
 @inject IJSRuntime JS
 
-<div class="exercise-card" @onclick="OpenFullscreen" style="cursor:pointer">
+<div class="exercise-card @(!_filteredData.Any() && _selectedDays != 0 ? "card--no-data" : "")" @onclick="OpenFullscreen" style="cursor:pointer">
     <div class="card-header">
         <div class="card-title-area">
             <div class="card-title" title="@ExerciseName">@ExerciseName</div>
             <div class="card-muscle-tag">@WorkoutDataService.GetMuscleGroup(ExerciseName)</div>
         </div>
-        @{ var _trendCard = GetTrendDirection(); }
+        @{ var _trendCard = _displayTrend; }
         <div class="trend-indicator" title="@(_trendCard == "up" ? "Trending up" : _trendCard == "down" ? "Trending down" : "No change")">
             @if (_trendCard == "up")
             {
@@ -46,6 +46,15 @@
 
     <div class="chart-container">
         <canvas id="@_canvasId"></canvas>
+        @if (!_filteredData.Any() && _selectedDays != 0)
+        {
+            <div class="chart-no-data">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <span>No sessions in this period</span>
+            </div>
+        }
     </div>
 
     @if (_filteredData.Any())
@@ -80,7 +89,7 @@
                     <div class="fs-title">@ExerciseName</div>
                     <div class="card-muscle-tag">@WorkoutDataService.GetMuscleGroup(ExerciseName)</div>
                 </div>
-                @{ var _trendFs = GetTrendDirection(); }
+                @{ var _trendFs = _displayTrend; }
                 <div class="trend-indicator trend-indicator--lg" title="@(_trendFs == "up" ? "Trending up" : _trendFs == "down" ? "Trending down" : "No change")">
                     @if (_trendFs == "up")
                     {
@@ -155,6 +164,9 @@
     [Parameter] public List<ExerciseSummary> AllData { get; set; } = new();
     [Parameter] public string? MetricOverride { get; set; }
     [Parameter] public int? DaysOverride { get; set; }
+    [Parameter] public string TrendOverride { get; set; } = "";
+
+    private string _displayTrend => string.IsNullOrEmpty(TrendOverride) ? GetTrendDirection() : TrendOverride;
 
     private string _canvasId = "";
     private string _fullscreenCanvasId = "";
@@ -244,6 +256,11 @@
 
     private async Task RenderChart()
     {
+        if (!_filteredData.Any())
+        {
+            try { await JS.InvokeVoidAsync("chartInterop.destroyChart", _canvasId); } catch { }
+            return;
+        }
         await RenderChartOnCanvas(_canvasId);
     }
 

@@ -327,7 +327,8 @@ dotnet watch
                         ExerciseName="@exercise"
                         AllData="@GetSummaryData(exercise)"
                         MetricOverride="@_globalMetric"
-                        DaysOverride="@_globalDays" />
+                        DaysOverride="@_globalDays"
+                        TrendOverride="@GetExerciseTrendDirection(exercise)" />
                 }
             </div>
         }
@@ -470,7 +471,7 @@ dotnet watch
         if (denom == 0) return "neutral";
         double slope = (n * sumXY - sumX * sumY) / denom;
         double intercept = (sumY - slope * sumX) / n;
-        var trend = Enumerable.Range(0, n).Select(i => intercept + slope * i).ToArray();
+        var trend = Enumerable.Range(0, n).Select(i => Math.Round(intercept + slope * i, 1)).ToArray();
         double change = trend[^1] - trend[0];
         double avg = values.Average();
         if (avg == 0) return "neutral";
