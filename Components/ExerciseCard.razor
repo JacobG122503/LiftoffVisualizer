@@ -56,16 +56,16 @@
                 <div class="card-stat-label">Best Weight</div>
             </div>
             <div class="card-stat">
+                <div class="card-stat-value">@(_filteredData.Max(d => d.MaxEstimated1RM).ToString("N0")) lbs</div>
+                <div class="card-stat-label">Est. Max</div>
+            </div>
+            <div class="card-stat">
                 <div class="card-stat-value">@(_filteredData.Max(d => d.TotalVolume).ToString("N0")) lbs</div>
                 <div class="card-stat-label">Best Volume</div>
             </div>
             <div class="card-stat">
                 <div class="card-stat-value">@_filteredData.Count</div>
                 <div class="card-stat-label">Sessions</div>
-            </div>
-            <div class="card-stat">
-                <div class="card-stat-value">@_filteredData.Max(d => d.TotalSets)</div>
-                <div class="card-stat-label">Max Sets</div>
             </div>
         </div>
     }
@@ -133,16 +133,16 @@
                         <div class="card-stat-label">Best Weight</div>
                     </div>
                     <div class="card-stat">
+                        <div class="card-stat-value">@(_filteredData.Max(d => d.MaxEstimated1RM).ToString("N0")) lbs</div>
+                        <div class="card-stat-label">Est. Max</div>
+                    </div>
+                    <div class="card-stat">
                         <div class="card-stat-value">@(_filteredData.Max(d => d.TotalVolume).ToString("N0")) lbs</div>
                         <div class="card-stat-label">Best Volume</div>
                     </div>
                     <div class="card-stat">
                         <div class="card-stat-value">@_filteredData.Count</div>
                         <div class="card-stat-label">Sessions</div>
-                    </div>
-                    <div class="card-stat">
-                        <div class="card-stat-value">@_filteredData.Max(d => d.TotalSets)</div>
-                        <div class="card-stat-label">Max Sets</div>
                     </div>
                 </div>
             }

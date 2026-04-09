@@ -300,6 +300,22 @@ dotnet watch
             }
         </div>
 
+        <!-- Cards Toolbar -->
+        <div class="cards-toolbar">
+            <div class="sort-select-wrap">
+                <label class="sort-select-label" for="sort-select">Sort</label>
+                <select id="sort-select" class="sort-select" @bind="_sortOrder">
+                    <option value="recent">Most Recent</option>
+                    <option value="trend_asc">Trending Up</option>
+                    <option value="trend_desc">Trending Down</option>
+                    <option value="alpha_asc">A → Z</option>
+                    <option value="alpha_desc">Z → A</option>
+                    <option value="sessions_desc">Most Sessions</option>
+                    <option value="muscle">Muscle Group</option>
+                </select>
+            </div>
+        </div>
+
         <!-- Exercise Cards Grid -->
         @if (_filteredExercises.Any())
         {
@@ -429,15 +445,58 @@ dotnet watch
 
     // PWA install hint
     private string _pwaBrowser = "";
+    private string _sortOrder = "recent";
+
+    // Mirrors ExerciseCard.GetTrendDirection — uses the same metric, date range, and 1% threshold
+    // so the sort order always matches the triangles shown on each card.
+    private string GetExerciseTrendDirection(string name)
+    {
+        if (!_summaryCache.TryGetValue(name, out var allData) || allData.Count < 2) return "neutral";
+        var data = _globalDays == 0
+            ? allData
+            : allData.Where(d => d.Date >= DateTime.Now.AddDays(-_globalDays)).ToList();
+        if (data.Count < 2) return "neutral";
+        var values = _globalMetric switch
+        {
+            "volume" => data.Select(d => d.TotalVolume).ToArray(),
+            "reps"   => data.Select(d => (double)d.TotalReps).ToArray(),
+            "est1rm" => data.Select(d => Math.Round(d.MaxEstimated1RM, 1)).ToArray(),
+            _        => data.Select(d => d.MaxWeight).ToArray()
+        };
+        int n = values.Length;
+        double sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+        for (int i = 0; i < n; i++) { sumX += i; sumY += values[i]; sumXY += i * values[i]; sumX2 += (double)i * i; }
+        double denom = n * sumX2 - sumX * sumX;
+        if (denom == 0) return "neutral";
+        double slope = (n * sumXY - sumX * sumY) / denom;
+        double intercept = (sumY - slope * sumX) / n;
+        var trend = Enumerable.Range(0, n).Select(i => intercept + slope * i).ToArray();
+        double change = trend[^1] - trend[0];
+        double avg = values.Average();
+        if (avg == 0) return "neutral";
+        double relChange = change / avg;
+        if (relChange > 0.01) return "up";
+        if (relChange < -0.01) return "down";
+        return "neutral";
+    }
 
     private List<string> _filteredExercises => _exerciseNames
         .Where(e =>
             (_selectedMuscle == "All" || WorkoutDataService.GetMuscleGroup(e) == _selectedMuscle)
             && (string.IsNullOrWhiteSpace(_searchQuery) || e.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase))
         )
-        .OrderByDescending(e =>
-            _summaryCache.TryGetValue(e, out var d) && d.Any() ? d.Max(s => s.Date) : DateTime.MinValue
-        )
+        .OrderBy(e => _sortOrder switch
+        {
+            "alpha_asc"     => (object)e,
+            "alpha_desc"    => (object)string.Concat(e.Select(c => (char)(char.MaxValue - c))),
+            "muscle"        => (object)WorkoutDataService.GetMuscleGroup(e),
+            "sessions_desc" => (object)(_summaryCache.TryGetValue(e, out var sd) ? int.MaxValue - sd.Count : int.MaxValue),
+            // bucket by the same direction as the triangle: down=0, neutral=1, up=2
+            "trend_desc"    => (object)(GetExerciseTrendDirection(e) switch { "down" => 0, "neutral" => 1, _ => 2 }),
+            // bucket by the same direction as the triangle: up=0, neutral=1, down=2
+            "trend_asc"     => (object)(GetExerciseTrendDirection(e) switch { "up" => 0, "neutral" => 1, _ => 2 }),
+            _               => (object)(_summaryCache.TryGetValue(e, out var d) && d.Any() ? DateTime.MaxValue - d.Max(s => s.Date) : TimeSpan.MaxValue)
+        })
         .ToList();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
