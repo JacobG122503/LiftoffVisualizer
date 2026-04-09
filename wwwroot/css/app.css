@@ -645,6 +645,55 @@ details[open] .more-stats-toggle::before { transform: rotate(90deg); }
     margin-bottom: 0.75rem;
 }
 
+.global-metric-selector {
+    padding: 0;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.global-filters-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.global-filter-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    flex-shrink: 0;
+    min-width: 38px;
+}
+
+.global-time-range {
+    padding: 0;
+    margin-bottom: 0;
+    flex-wrap: wrap;
+}
+
+/* ── Trend Indicator ──────────────────────────────────────── */
+.trend-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    background: var(--bg-input);
+    margin-left: auto;
+}
+
+.trend-indicator--lg {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+}
+
 .metric-btn {
     padding: 3px 10px;
     border-radius: 100px;

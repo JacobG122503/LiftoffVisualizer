@@ -6,6 +6,21 @@
             <div class="card-title" title="@ExerciseName">@ExerciseName</div>
             <div class="card-muscle-tag">@WorkoutDataService.GetMuscleGroup(ExerciseName)</div>
         </div>
+        @{ var _trendCard = GetTrendDirection(); }
+        <div class="trend-indicator" title="@(_trendCard == "up" ? "Trending up" : _trendCard == "down" ? "Trending down" : "No change")">
+            @if (_trendCard == "up")
+            {
+                <svg width="12" height="11" viewBox="0 0 12 11" xmlns="http://www.w3.org/2000/svg"><polygon points="6,0 12,11 0,11" fill="#4CAF50"/></svg>
+            }
+            else if (_trendCard == "down")
+            {
+                <svg width="12" height="11" viewBox="0 0 12 11" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 12,0 6,11" fill="#f44336"/></svg>
+            }
+            else
+            {
+                <svg width="14" height="6" viewBox="0 0 14 6" xmlns="http://www.w3.org/2000/svg"><line x1="1" y1="3" x2="13" y2="3" stroke="#9E9E9E" stroke-width="2" stroke-linecap="round"/></svg>
+            }
+        </div>
     </div>
 
     <div class="time-range-btns" @onclick:stopPropagation="true">
@@ -64,6 +79,21 @@
                 <div>
                     <div class="fs-title">@ExerciseName</div>
                     <div class="card-muscle-tag">@WorkoutDataService.GetMuscleGroup(ExerciseName)</div>
+                </div>
+                @{ var _trendFs = GetTrendDirection(); }
+                <div class="trend-indicator trend-indicator--lg" title="@(_trendFs == "up" ? "Trending up" : _trendFs == "down" ? "Trending down" : "No change")">
+                    @if (_trendFs == "up")
+                    {
+                        <svg width="14" height="13" viewBox="0 0 12 11" xmlns="http://www.w3.org/2000/svg"><polygon points="6,0 12,11 0,11" fill="#4CAF50"/></svg>
+                    }
+                    else if (_trendFs == "down")
+                    {
+                        <svg width="14" height="13" viewBox="0 0 12 11" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 12,0 6,11" fill="#f44336"/></svg>
+                    }
+                    else
+                    {
+                        <svg width="16" height="7" viewBox="0 0 14 6" xmlns="http://www.w3.org/2000/svg"><line x1="1" y1="3" x2="13" y2="3" stroke="#9E9E9E" stroke-width="2" stroke-linecap="round"/></svg>
+                    }
                 </div>
                 <button class="fs-close" @onclick="CloseFullscreen" title="Close">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -124,6 +154,7 @@
     [Parameter] public string ExerciseName { get; set; } = "";
     [Parameter] public List<ExerciseSummary> AllData { get; set; } = new();
     [Parameter] public string? MetricOverride { get; set; }
+    [Parameter] public int? DaysOverride { get; set; }
 
     private string _canvasId = "";
     private string _fullscreenCanvasId = "";
@@ -134,6 +165,7 @@
     private bool _fullscreen = false;
 
     private string _prevMetricOverride = "";
+    private int? _prevDaysOverride = null;
 
     private string ActiveMetric => _selectedMetric;
 
@@ -161,6 +193,12 @@
         {
             _selectedMetric = MetricOverride;
             _prevMetricOverride = MetricOverride;
+        }
+        // Sync local days when global override changes
+        if (DaysOverride.HasValue && DaysOverride != _prevDaysOverride)
+        {
+            _selectedDays = DaysOverride.Value;
+            _prevDaysOverride = DaysOverride;
         }
         FilterData();
         if (_chartRendered)
@@ -317,5 +355,25 @@
         _selectedMetric = metric;
         await RenderChart();
         await RenderChartOnCanvas(_fullscreenCanvasId);
+    }
+
+    private string GetTrendDirection()
+    {
+        if (_filteredData.Count < 2) return "neutral";
+        var data = ActiveMetric switch
+        {
+            "volume" => _filteredData.Select(d => d.TotalVolume).ToArray(),
+            "reps"   => _filteredData.Select(d => (double)d.TotalReps).ToArray(),
+            "est1rm" => _filteredData.Select(d => Math.Round(d.MaxEstimated1RM, 1)).ToArray(),
+            _        => _filteredData.Select(d => d.MaxWeight).ToArray()
+        };
+        var trend = ComputeTrendLine(data);
+        var change = trend[^1] - trend[0];
+        var avg = data.Average();
+        if (avg == 0) return "neutral";
+        var relChange = change / avg;
+        if (relChange > 0.01) return "up";
+        if (relChange < -0.01) return "down";
+        return "neutral";
     }
 }

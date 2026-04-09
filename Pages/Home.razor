@@ -277,6 +277,20 @@ dotnet watch
             </div>
         </div>
 
+        <!-- Global Date Range -->
+        <div class="global-filters-row">
+            <span class="global-filter-label">Range</span>
+            <div class="time-range-btns global-time-range">
+                @foreach (var range in _globalTimeRanges)
+                {
+                    <button class="time-btn @(range.Days == _globalDays ? "active" : "")"
+                            @onclick="() => SetGlobalDays(range.Days)">
+                        @range.Label
+                    </button>
+                }
+            </div>
+        </div>
+
         <!-- Global Metric Selector -->
         <div class="metric-selector global-metric-selector">
             @foreach (var opt in _metricOptions)
@@ -296,7 +310,8 @@ dotnet watch
                         @key="@exercise"
                         ExerciseName="@exercise"
                         AllData="@GetSummaryData(exercise)"
-                        MetricOverride="@_globalMetric" />
+                        MetricOverride="@_globalMetric"
+                        DaysOverride="@_globalDays" />
                 }
             </div>
         }
@@ -350,6 +365,18 @@ dotnet watch
     private string _selectedMuscle = "All";
     private string _searchQuery = "";
     private string _globalMetric = "weight";
+    private int _globalDays = 0;
+
+    private static readonly (string Label, int Days)[] _globalTimeRanges = new[]
+    {
+        ("15D", 15),
+        ("30D", 30),
+        ("90D", 90),
+        ("6M", 180),
+        ("1Y", 365),
+        ("All", 0)
+    };
+
     private static readonly (string Key, string Label)[] _metricOptions = new[]
     {
         ("weight", "Max Weight"),
@@ -727,5 +754,10 @@ dotnet watch
     private void SetGlobalMetric(string metric)
     {
         _globalMetric = metric;
+    }
+
+    private void SetGlobalDays(int days)
+    {
+        _globalDays = days;
     }
 }
