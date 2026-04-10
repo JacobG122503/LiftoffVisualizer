@@ -1,17 +1,17 @@
 // Dynamically set browser theme color (for iOS/Android status bar)
-window.themeHelper.setThemeColor = function() {
-    var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    var accent = localStorage.getItem('lv-accent') || '#E65100';
-    var color = isDark ? '#181A20' : accent;
-    var meta = document.querySelector('meta[name="theme-color"]');
-    if (!meta) {
-        meta = document.createElement('meta');
-        meta.name = 'theme-color';
-        document.head.appendChild(meta);
-    }
-    meta.setAttribute('content', color);
-};
 window.themeHelper = {
+    setThemeColor: function() {
+        var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        var accent = localStorage.getItem('lv-accent') || '#E65100';
+        var color = isDark ? '#181A20' : accent;
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (!meta) {
+            meta = document.createElement('meta');
+            meta.name = 'theme-color';
+            document.head.appendChild(meta);
+        }
+        meta.setAttribute('content', color);
+    },
     _applyAccent: function (hex) {
         // Update favicon to match accent
         window.themeHelper.setFavicon(hex);
