@@ -32,6 +32,12 @@
           lv_s.setProperty('--primary-bg-hover','rgba('+lv_r+','+lv_g+','+lv_b+',0.14)');
           lv_s.setProperty('--border-hover','rgba('+lv_r+','+lv_g+','+lv_b+',0.3)');
           lv_s.setProperty('--shadow-card-hover','0 8px 24px rgba('+lv_r+','+lv_g+','+lv_b+',0.12)');
+          var lv_dk=lv_t==='dark';
+          var lv_base_r=lv_dk?26:255,lv_base_g=lv_dk?26:255,lv_base_b=lv_dk?26:255,lv_mix=lv_dk?0.08:0.05;
+          var lv_mr=Math.round(lv_base_r+(lv_r-lv_base_r)*lv_mix);
+          var lv_mg=Math.round(lv_base_g+(lv_g-lv_base_g)*lv_mix);
+          var lv_mb=Math.round(lv_base_b+(lv_b-lv_base_b)*lv_mix);
+          lv_s.setProperty('--bg-card-hover','rgb('+lv_mr+','+lv_mg+','+lv_mb+')');
         }
       } catch(e) {}
     </script>
