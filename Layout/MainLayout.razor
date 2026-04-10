@@ -7,7 +7,7 @@
         <div class="theme-panel-backdrop" @onclick="ClosePanel"></div>
     }
     <nav class="navbar">
-        <a href="/" class="navbar-brand">
+        <div class="navbar-brand">
             <svg class="navbar-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
                 <rect width="64" height="64" rx="12" fill="var(--primary)"/>
                 <rect x="4" y="22" width="8" height="20" rx="3" fill="white"/>
@@ -17,7 +17,7 @@
                 <rect x="52" y="22" width="8" height="20" rx="3" fill="white"/>
             </svg>
             <span>Liftoff Visualizer</span>
-        </a>
+        </div>
         <div class="navbar-right">
             <div class="theme-panel-wrap">
                 <button class="theme-toggle @(_panelOpen ? "active" : "")" @onclick="TogglePanel" title="Theme settings">

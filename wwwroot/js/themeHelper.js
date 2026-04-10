@@ -1,5 +1,7 @@
 window.themeHelper = {
     _applyAccent: function (hex) {
+        // Update favicon to match accent
+        window.themeHelper.setFavicon(hex);
         if (!hex || !/^#[0-9a-fA-F]{6}$/.test(hex)) return;
         const r = parseInt(hex.slice(1, 3), 16);
         const g = parseInt(hex.slice(3, 5), 16);
@@ -30,9 +32,26 @@ window.themeHelper = {
         }
     },
 
+    setFavicon: function(hex) {
+        // Generate SVG string with accent color
+        if (!hex || !/^#[0-9a-fA-F]{6}$/.test(hex)) hex = '#E65100';
+        const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='${hex}'/><rect x='4' y='22' width='8' height='20' rx='3' fill='white'/><rect x='14' y='26' width='6' height='12' rx='2' fill='white'/><rect x='20' y='30' width='24' height='4' rx='2' fill='white'/><rect x='44' y='26' width='6' height='12' rx='2' fill='white'/><rect x='52' y='22' width='8' height='20' rx='3' fill='white'/></svg>`;
+        const url = 'data:image/svg+xml,' + encodeURIComponent(svg);
+        let link = document.querySelector("link[rel='icon']");
+        if (!link) {
+            link = document.createElement('link');
+            link.rel = 'icon';
+            document.head.appendChild(link);
+        }
+        link.type = 'image/svg+xml';
+        link.href = url;
+    },
+
     // Apply accent colors to CSS vars only (during color picker drag — no save, no chart refresh)
     setAccentCssOnly: function (hex) {
         this._applyAccent(hex);
+        // Also update favicon
+        this.setFavicon(hex);
     },
 
     // Apply accent + save to localStorage (called on commit/preset click)
@@ -48,6 +67,7 @@ window.themeHelper = {
         try {
             const accent = localStorage.getItem('lv-accent') || '#E65100';
             this._applyAccent(accent);
+            this.setFavicon(accent);
         } catch (e) { }
     }
 };

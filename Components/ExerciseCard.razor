@@ -65,8 +65,17 @@
                 <div class="card-stat-label">Best Weight</div>
             </div>
             <div class="card-stat">
-                <div class="card-stat-value">@(_filteredData.Max(d => d.MaxEstimated1RM).ToString("N0")) lbs</div>
-                <div class="card-stat-label">Est. Max</div>
+                @{
+                    var est1rm = _filteredData.MaxBy(d => d.MaxEstimated1RM);
+                }
+                <div class="card-stat-value" style="padding-bottom:0.1em;">
+                    @(est1rm?.MaxEstimated1RM.ToString("N0") ?? "-") lbs
+                    @if (est1rm != null && est1rm.BestSet1RMWeight > 0 && est1rm.BestSet1RMReps > 0)
+                    {
+                        <span style="display:inline-block;margin-left:0.4em;color:#181A20;font-size:0.95em;font-weight:500;white-space:nowrap;vertical-align:middle;">(@est1rm.BestSet1RMWeight.ToString("N0") lbs × @est1rm.BestSet1RMReps reps)</span>
+                    }
+                </div>
+                <div class="card-stat-label">Est. 1RM</div>
             </div>
             <div class="card-stat">
                 <div class="card-stat-value">@(_filteredData.Max(d => d.TotalVolume).ToString("N0")) lbs</div>
@@ -142,8 +151,17 @@
                         <div class="card-stat-label">Best Weight</div>
                     </div>
                     <div class="card-stat">
-                        <div class="card-stat-value">@(_filteredData.Max(d => d.MaxEstimated1RM).ToString("N0")) lbs</div>
-                        <div class="card-stat-label">Est. Max</div>
+                        @{
+                            var est1rm = _filteredData.MaxBy(d => d.MaxEstimated1RM);
+                        }
+                        <div class="card-stat-value" style="padding-bottom:0.1em;">
+                            @(est1rm?.MaxEstimated1RM.ToString("N0") ?? "-") lbs
+                            @if (est1rm != null && est1rm.BestSet1RMWeight > 0 && est1rm.BestSet1RMReps > 0)
+                            {
+                                <span style="display:inline-block;margin-left:0.4em;color:#181A20;font-size:0.95em;font-weight:500;white-space:nowrap;vertical-align:middle;">(@est1rm.BestSet1RMWeight.ToString("N0") lbs × @est1rm.BestSet1RMReps reps)</span>
+                            }
+                        </div>
+                        <div class="card-stat-label">Est. 1RM</div>
                     </div>
                     <div class="card-stat">
                         <div class="card-stat-value">@(_filteredData.Max(d => d.TotalVolume).ToString("N0")) lbs</div>
