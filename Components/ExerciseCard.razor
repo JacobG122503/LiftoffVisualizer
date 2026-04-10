@@ -34,14 +34,14 @@
     </div>
 
     <div class="metric-selector" @onclick:stopPropagation="true">
+        <button class="metric-btn @(_selectedMetric == "est1rm" ? "active" : "")"
+                @onclick='() => SetMetric("est1rm")'>Est. 1RM</button>
         <button class="metric-btn @(_selectedMetric == "weight" ? "active" : "")"
                 @onclick='() => SetMetric("weight")'>Max Weight</button>
         <button class="metric-btn @(_selectedMetric == "volume" ? "active" : "")"
                 @onclick='() => SetMetric("volume")'>Volume</button>
         <button class="metric-btn @(_selectedMetric == "reps" ? "active" : "")"
                 @onclick='() => SetMetric("reps")'>Total Reps</button>
-        <button class="metric-btn @(_selectedMetric == "est1rm" ? "active" : "")"
-                @onclick='() => SetMetric("est1rm")'>Calc Max</button>
     </div>
 
     <div class="chart-container">
@@ -121,14 +121,14 @@
                     }
                 </div>
                 <div class="metric-selector">
+                    <button class="metric-btn @(_selectedMetric == "est1rm" ? "active" : "")"
+                            @onclick='() => SetMetricFullscreen("est1rm")'>Est. 1RM</button>
                     <button class="metric-btn @(_selectedMetric == "weight" ? "active" : "")"
                             @onclick='() => SetMetricFullscreen("weight")'>Max Weight</button>
                     <button class="metric-btn @(_selectedMetric == "volume" ? "active" : "")"
                             @onclick='() => SetMetricFullscreen("volume")'>Volume</button>
                     <button class="metric-btn @(_selectedMetric == "reps" ? "active" : "")"
                             @onclick='() => SetMetricFullscreen("reps")'>Total Reps</button>
-                    <button class="metric-btn @(_selectedMetric == "est1rm" ? "active" : "")"
-                            @onclick='() => SetMetricFullscreen("est1rm")'>Calc Max</button>
                 </div>
             </div>
             <div class="fs-chart-container">
@@ -171,7 +171,7 @@
     private string _canvasId = "";
     private string _fullscreenCanvasId = "";
     private int _selectedDays = 0; // 0 = all time
-    private string _selectedMetric = "weight";
+    private string _selectedMetric = "est1rm";
     private List<ExerciseSummary> _filteredData = new();
     private bool _chartRendered = false;
     private bool _fullscreen = false;
@@ -299,6 +299,13 @@
             _         => "Max Weight (lbs)"
         };
 
+        // For est1rm, attach per-point tooltip subtitle (weight × reps of the best set)
+        var tooltipExtras = ActiveMetric == "est1rm"
+            ? _filteredData.Select(d => d.BestSet1RMWeight > 0
+                ? $"{d.BestSet1RMWeight:N0} lbs \u00d7 {d.BestSet1RMReps} reps"
+                : "").ToArray()
+            : null;
+
         var datasets = new System.Collections.Generic.List<object>
         {
             new
@@ -313,6 +320,24 @@
                 tension = 0.3
             }
         };
+
+        // Separate invisible dataset carries the orange tooltip subtitle for est1rm
+        if (tooltipExtras != null)
+        {
+            datasets.Add(new
+            {
+                label = "",
+                data,
+                tooltipExtras = (object?)tooltipExtras,
+                borderColor = "transparent",
+                backgroundColor = "transparent",
+                borderWidth = (object?)0,
+                pointRadius = (object?)0,
+                pointHoverRadius = (object?)0,
+                fill = false,
+                tension = 0.3
+            });
+        }
 
         if (data.Length >= 2)
         {

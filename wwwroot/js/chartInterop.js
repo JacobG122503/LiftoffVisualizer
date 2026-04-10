@@ -22,7 +22,7 @@ window.chartInterop = {
                     ...ds,
                     borderColor: ds.borderColor || '#E65100',
                     backgroundColor: ds.backgroundColor || 'rgba(230,81,0,0.15)',
-                    borderWidth: ds.borderWidth || 2.5,
+                    borderWidth: ds.borderWidth ?? 2.5,
                     pointRadius: ds.pointRadius ?? 4,
                     pointHoverRadius: ds.pointHoverRadius ?? 6,
                     pointBackgroundColor: ds.pointBackgroundColor || '#E65100',
@@ -41,8 +41,14 @@ window.chartInterop = {
                 },
                 plugins: {
                     legend: {
-                        display: config.datasets.length > 1,
-                        labels: { color: textColor, font: { family: "'Inter', sans-serif", size: 12 } }
+                        display: config.datasets.filter(d => !d.tooltipExtras).length > 1,
+                        labels: {
+                            color: textColor,
+                            font: { family: "'Inter', sans-serif", size: 12 },
+                            filter: function(item, chart) {
+                                return !chart.datasets[item.datasetIndex].tooltipExtras;
+                            }
+                        }
                     },
                     tooltip: {
                         backgroundColor: isDark ? '#333' : '#fff',
@@ -61,6 +67,27 @@ window.chartInterop = {
                                 const date = new Date(rawLabel + 'T00:00:00');
                                 if (isNaN(date)) return rawLabel;
                                 return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                            },
+                            label: function(item) {
+                                const ds = item.chart.data.datasets[item.datasetIndex];
+                                // Extras dataset: only show the subtitle, not a blank base label
+                                if (ds.tooltipExtras) {
+                                    return ds.tooltipExtras[item.dataIndex] || null;
+                                }
+                                return `${ds.label}: ${item.formattedValue}`;
+                            },
+                            labelColor: function(item) {
+                                const ds = item.chart.data.datasets[item.datasetIndex];
+                                // Hide the color swatch for the extras subtitle line
+                                if (ds.tooltipExtras) {
+                                    return { backgroundColor: 'transparent', borderColor: 'transparent' };
+                                }
+                                return undefined;
+                            },
+                            labelTextColor: function(item) {
+                                const ds = item.chart.data.datasets[item.datasetIndex];
+                                if (ds.tooltipExtras) return '#E65100';
+                                return undefined;
                             }
                         }
                     }

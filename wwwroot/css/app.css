@@ -647,17 +647,72 @@ details[open] .more-stats-toggle::before { transform: rotate(90deg); }
 
 .global-metric-selector {
     padding: 0;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
     flex-wrap: wrap;
 }
 
-/* ── Sort / Filter row ──────────────────────────────────────── */
-.cards-toolbar {
+/* ── Combined Range + Sort row ───────────────────────────────── */
+.global-controls-row {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
-    margin-bottom: 1rem;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
 }
+
+.global-filters-inline {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.global-filter-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    flex-shrink: 0;
+    min-width: 38px;
+}
+
+.global-time-range {
+    padding: 0;
+    margin-bottom: 0;
+    flex-wrap: wrap;
+}
+
+/* ── Trend counts + Sort row (directly above cards) ──────────── */
+.trend-sort-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+}
+
+.trend-counts-row {
+    display: flex;
+    align-items: center;
+    gap: 1.1rem;
+    margin-bottom: 0;
+}
+
+.trend-count {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+.trend-count--up     { color: #4CAF50; }
+.trend-count--down   { color: #f44336; }
+.trend-count--neutral { color: var(--text-muted); }
 
 .sort-select-wrap {
     display: flex;
@@ -697,30 +752,6 @@ details[open] .more-stats-toggle::before { transform: rotate(90deg); }
 .sort-select:focus {
     border-color: var(--border-hover);
     box-shadow: 0 0 0 2px var(--primary-bg);
-}
-
-.global-filters-row {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 0.5rem;
-    flex-wrap: wrap;
-}
-
-.global-filter-label {
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    flex-shrink: 0;
-    min-width: 38px;
-}
-
-.global-time-range {
-    padding: 0;
-    margin-bottom: 0;
-    flex-wrap: wrap;
 }
 
 /* ── Trend Indicator ──────────────────────────────────────── */

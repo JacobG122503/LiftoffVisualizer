@@ -25,4 +25,6 @@ public class ExerciseSummary
     public int TotalSets { get; set; }
     public double AvgWeight { get; set; }
     public double MaxEstimated1RM { get; set; } // Epley: weight * (1 + reps/30)
+    public double BestSet1RMWeight { get; set; } // the weight that produced MaxEstimated1RM
+    public int BestSet1RMReps { get; set; }      // the reps that produced MaxEstimated1RM
 }

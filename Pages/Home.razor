@@ -277,17 +277,19 @@ dotnet watch
             </div>
         </div>
 
-        <!-- Global Date Range -->
-        <div class="global-filters-row">
-            <span class="global-filter-label">Range</span>
-            <div class="time-range-btns global-time-range">
-                @foreach (var range in _globalTimeRanges)
-                {
-                    <button class="time-btn @(range.Days == _globalDays ? "active" : "")"
-                            @onclick="() => SetGlobalDays(range.Days)">
-                        @range.Label
-                    </button>
-                }
+        <!-- Global Controls Row: Range only -->
+        <div class="global-controls-row">
+            <div class="global-filters-inline">
+                <span class="global-filter-label">Range</span>
+                <div class="time-range-btns global-time-range">
+                    @foreach (var range in _globalTimeRanges)
+                    {
+                        <button class="time-btn @(range.Days == _globalDays ? "active" : "")"
+                                @onclick="() => SetGlobalDays(range.Days)">
+                            @range.Label
+                        </button>
+                    }
+                </div>
             </div>
         </div>
 
@@ -300,8 +302,22 @@ dotnet watch
             }
         </div>
 
-        <!-- Cards Toolbar -->
-        <div class="cards-toolbar">
+        <!-- Trend Summary Counts + Sort (directly above cards) -->
+        <div class="trend-sort-row">
+            <div class="trend-counts-row">
+                <span class="trend-count trend-count--up" title="Trending up">
+                    <svg width="10" height="9" viewBox="0 0 12 11" xmlns="http://www.w3.org/2000/svg"><polygon points="6,0 12,11 0,11" fill="#4CAF50"/></svg>
+                    @(_filteredExercises.Where(HasDataInPeriod).Count(e => GetExerciseTrendDirection(e) == "up"))
+                </span>
+                <span class="trend-count trend-count--down" title="Trending down">
+                    <svg width="10" height="9" viewBox="0 0 12 11" xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 12,0 6,11" fill="#f44336"/></svg>
+                    @(_filteredExercises.Where(HasDataInPeriod).Count(e => GetExerciseTrendDirection(e) == "down"))
+                </span>
+                <span class="trend-count trend-count--neutral" title="No change">
+                    <svg width="12" height="5" viewBox="0 0 14 6" xmlns="http://www.w3.org/2000/svg"><line x1="1" y1="3" x2="13" y2="3" stroke="#9E9E9E" stroke-width="2" stroke-linecap="round"/></svg>
+                    @(_filteredExercises.Where(HasDataInPeriod).Count(e => GetExerciseTrendDirection(e) == "neutral"))
+                </span>
+            </div>
             <div class="sort-select-wrap">
                 <label class="sort-select-label" for="sort-select">Sort</label>
                 <select id="sort-select" class="sort-select" @bind="_sortOrder">
@@ -381,7 +397,7 @@ dotnet watch
 
     private string _selectedMuscle = "All";
     private string _searchQuery = "";
-    private string _globalMetric = "weight";
+    private string _globalMetric = "est1rm";
     private int _globalDays = 0;
 
     private static readonly (string Label, int Days)[] _globalTimeRanges = new[]
@@ -396,10 +412,10 @@ dotnet watch
 
     private static readonly (string Key, string Label)[] _metricOptions = new[]
     {
+        ("est1rm", "Est. 1RM"),
         ("weight", "Max Weight"),
         ("volume", "Volume"),
-        ("reps", "Total Reps"),
-        ("est1rm", "Calc Max")
+        ("reps", "Total Reps")
     };
 
     private int _totalWorkouts;
@@ -450,6 +466,13 @@ dotnet watch
 
     // Mirrors ExerciseCard.GetTrendDirection — uses the same metric, date range, and 1% threshold
     // so the sort order always matches the triangles shown on each card.
+    private bool HasDataInPeriod(string name)
+    {
+        if (_globalDays == 0) return true;
+        return _summaryCache.TryGetValue(name, out var allData)
+            && allData.Any(d => d.Date >= DateTime.Now.AddDays(-_globalDays));
+    }
+
     private string GetExerciseTrendDirection(string name)
     {
         if (!_summaryCache.TryGetValue(name, out var allData) || allData.Count < 2) return "neutral";

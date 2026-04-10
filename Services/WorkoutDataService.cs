@@ -52,7 +52,11 @@ public class WorkoutDataService
                 AvgWeight = g.Average(r => r.Weight),
                 MaxEstimated1RM = g.Max(r => r.Weight > 0 && r.Reps > 0
                     ? r.Weight * (1 + r.Reps / 30.0)
-                    : r.Weight)
+                    : r.Weight),
+                BestSet1RMWeight = g.OrderByDescending(r => r.Weight > 0 && r.Reps > 0
+                    ? r.Weight * (1 + r.Reps / 30.0) : r.Weight).First().Weight,
+                BestSet1RMReps = g.OrderByDescending(r => r.Weight > 0 && r.Reps > 0
+                    ? r.Weight * (1 + r.Reps / 30.0) : r.Weight).First().Reps
             })
             .OrderBy(s => s.Date)
             .ToList();
