@@ -7,6 +7,7 @@ dotnet watch
 @page "/"
 @inject WorkoutDataService DataService
 @inject IJSRuntime JS
+@inject HttpClient Http
 
 <PageTitle>Liftoff Visualizer</PageTitle>
 
@@ -53,6 +54,7 @@ dotnet watch
 
             @if (!string.IsNullOrEmpty(_pwaBrowser))
             {
+                @* PWA install hint ... *@
                 <div class="pwa-install-hint">
                     <div class="pwa-install-hint-icon">📲</div>
                     <div class="pwa-install-hint-body">
@@ -87,6 +89,11 @@ dotnet watch
                         }
                     </div>
                 </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_lastUpdated))
+            {
+                <p class="build-date">Last Updated: @_lastUpdated</p>
             }
         </div>
     }
@@ -389,6 +396,7 @@ dotnet watch
     private string _csvInput = "";
     private string _errorMessage = "";
     private CancellationTokenSource? _debounceCts;
+    private string _lastUpdated = "";
 
     private List<string> _exerciseNames = new();
     private List<WorkoutRecord> _allRecords = new();
@@ -509,7 +517,8 @@ dotnet watch
             (_selectedMuscle == "All" || WorkoutDataService.GetMuscleGroup(e) == _selectedMuscle)
             && (string.IsNullOrWhiteSpace(_searchQuery) || e.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase))
         )
-        .OrderBy(e => _sortOrder switch
+        .OrderBy(e => HasDataInPeriod(e) ? 0 : 1)
+        .ThenBy(e => _sortOrder switch
         {
             "alpha_asc"     => (object)e,
             "alpha_desc"    => (object)string.Concat(e.Select(c => (char)(char.MaxValue - c))),
@@ -536,6 +545,22 @@ dotnet watch
             }
         }
     }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var info = await Http.GetFromJsonAsync<BuildInfo>("data/buildinfo.json");
+            if (info?.buildDate is not null)
+            {
+                var utc = DateTime.Parse(info.buildDate, null, System.Globalization.DateTimeStyles.RoundtripKind);
+                _lastUpdated = utc.ToLocalTime().ToString("MMM d, yyyy h:mm tt");
+            }
+        }
+        catch { }
+    }
+
+    private record BuildInfo(string? buildDate = null);
 
     private async Task OnFileSelected(InputFileChangeEventArgs e)
     {

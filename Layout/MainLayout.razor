@@ -2,30 +2,60 @@
 @inject IJSRuntime JS
 
 <div class="app-root">
+    @if (_panelOpen)
+    {
+        <div class="theme-panel-backdrop" @onclick="ClosePanel"></div>
+    }
     <nav class="navbar">
         <a href="/" class="navbar-brand">
-            <img src="favicon.svg" class="navbar-logo" alt="Dumbbell" />
+            <svg class="navbar-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                <rect width="64" height="64" rx="12" fill="var(--primary)"/>
+                <rect x="4" y="22" width="8" height="20" rx="3" fill="white"/>
+                <rect x="14" y="26" width="6" height="12" rx="2" fill="white"/>
+                <rect x="20" y="30" width="24" height="4" rx="2" fill="white"/>
+                <rect x="44" y="26" width="6" height="12" rx="2" fill="white"/>
+                <rect x="52" y="22" width="8" height="20" rx="3" fill="white"/>
+            </svg>
             <span>Liftoff Visualizer</span>
         </a>
         <div class="navbar-right">
-            <button class="theme-toggle" @onclick="ToggleTheme" title="Toggle dark mode">
-                @if (_isDark)
-                {
+            <div class="theme-panel-wrap">
+                <button class="theme-toggle @(_panelOpen ? "active" : "")" @onclick="TogglePanel" title="Theme settings">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="5"/>
-                        <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
-                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-                        <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
-                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                        <path d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42"/>
                     </svg>
-                }
-                else
+                </button>
+                @if (_panelOpen)
                 {
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-                    </svg>
+                    <div class="theme-panel">
+                        <div class="theme-panel-section">
+                            <span class="theme-panel-label">Mode</span>
+                            <div class="mode-btns">
+                                <button class="mode-btn @(!_isDark ? "active" : "")" @onclick="() => SetMode(false)">☀️ Light</button>
+                                <button class="mode-btn @(_isDark ? "active" : "")" @onclick="() => SetMode(true)">🌙 Dark</button>
+                            </div>
+                        </div>
+                        <div class="theme-panel-divider"></div>
+                        <div class="theme-panel-section">
+                            <span class="theme-panel-label">Accent Color</span>
+                            <div class="accent-swatches">
+                                @foreach (var preset in _presets)
+                                {
+                                    <button class="swatch @(preset.Value.Equals(_accent, StringComparison.OrdinalIgnoreCase) ? "swatch--active" : "")"
+                                            style="background: @preset.Value"
+                                            title="@preset.Name"
+                                            @onclick="() => SetAccent(preset.Value)"></button>
+                                }
+                                <label class="swatch swatch--custom @(!_isPreset ? "swatch--active" : "")" title="Custom color">
+                                    <input type="color" value="@_accent"
+                                           @oninput="OnCustomColorInput"
+                                           @onchange="OnCustomColorChange" />
+                                </label>
+                            </div>
+                        </div>
+                    </div>
                 }
-            </button>
+            </div>
         </div>
     </nav>
 
@@ -36,13 +66,67 @@
 
 @code {
     private bool _isDark = false;
+    private bool _panelOpen = false;
+    private string _accent = "#E65100";
 
-    private async Task ToggleTheme()
+    private static readonly (string Name, string Value)[] _presets = new[]
     {
-        _isDark = !_isDark;
-        var theme = _isDark ? "dark" : "light";
-        await JS.InvokeVoidAsync("eval", $"document.documentElement.setAttribute('data-theme', '{theme}')");
-        // Refresh chart colors
-        await JS.InvokeVoidAsync("eval", "if(window.chartInterop) window.chartInterop.refreshAllCharts()");
+        ("Orange", "#E65100"),
+        ("Cyan", "#00BCD4"),
+        ("Purple", "#7C3AED"),
+        ("Red", "#E53935"),
+        ("Sea Green", "#3CB371"),
+    };
+
+    private bool _isPreset => _presets.Any(p => p.Value.Equals(_accent, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var savedTheme = await JS.InvokeAsync<string?>("localStorage.getItem", "lv-theme");
+            var savedAccent = await JS.InvokeAsync<string?>("localStorage.getItem", "lv-accent");
+            _isDark = savedTheme == "dark";
+            _accent = savedAccent ?? "#E65100";
+            StateHasChanged();
+        }
+    }
+
+    private void TogglePanel() => _panelOpen = !_panelOpen;
+    private void ClosePanel() => _panelOpen = false;
+
+    private async Task SetMode(bool isDark)
+    {
+        _isDark = isDark;
+        await JS.InvokeVoidAsync("themeHelper.setMode", isDark);
+        await JS.InvokeVoidAsync("chartInterop.refreshAllCharts");
+    }
+
+    private async Task SetAccent(string color)
+    {
+        _accent = color;
+        await JS.InvokeVoidAsync("themeHelper.setAccent", color);
+        await JS.InvokeVoidAsync("chartInterop.refreshAllCharts");
+    }
+
+    private async Task OnCustomColorInput(ChangeEventArgs e)
+    {
+        var color = e.Value?.ToString();
+        if (!string.IsNullOrEmpty(color))
+        {
+            _accent = color;
+            await JS.InvokeVoidAsync("themeHelper.setAccentCssOnly", color);
+        }
+    }
+
+    private async Task OnCustomColorChange(ChangeEventArgs e)
+    {
+        var color = e.Value?.ToString();
+        if (!string.IsNullOrEmpty(color))
+        {
+            _accent = color;
+            await JS.InvokeVoidAsync("themeHelper.setAccent", color);
+            await JS.InvokeVoidAsync("chartInterop.refreshAllCharts");
+        }
     }
 }

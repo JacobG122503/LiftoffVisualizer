@@ -11,4 +11,14 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="9.0.9" PrivateAssets="all" />
   </ItemGroup>
 
+  <Target Name="GenerateBuildInfo" BeforeTargets="BeforeBuild">
+    <PropertyGroup>
+      <BuildInfoDate>$([System.DateTime]::UtcNow.ToString("o"))</BuildInfoDate>
+    </PropertyGroup>
+    <WriteLinesToFile
+      File="$(MSBuildProjectDirectory)/wwwroot/data/buildinfo.json"
+      Lines='{"buildDate":"$(BuildInfoDate)"}'
+      Overwrite="true" />
+  </Target>
+
 </Project>

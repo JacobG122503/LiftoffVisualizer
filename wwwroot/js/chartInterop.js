@@ -1,3 +1,15 @@
+function getPrimary() {
+    return (getComputedStyle(document.documentElement).getPropertyValue('--primary') || '').trim() || '#E65100';
+}
+
+function primaryBg(alpha) {
+    const hex = getPrimary();
+    const r = parseInt(hex.slice(1, 3), 16) || 230;
+    const g = parseInt(hex.slice(3, 5), 16) || 81;
+    const b = parseInt(hex.slice(5, 7), 16) || 0;
+    return `rgba(${r},${g},${b},${alpha})`;
+}
+
 window.chartInterop = {
     charts: {},
 
@@ -20,12 +32,14 @@ window.chartInterop = {
                 labels: config.labels,
                 datasets: config.datasets.map(ds => ({
                     ...ds,
-                    borderColor: ds.borderColor || '#E65100',
-                    backgroundColor: ds.backgroundColor || 'rgba(230,81,0,0.15)',
+                    borderColor: ds.borderColor || getPrimary(),
+                    backgroundColor: ds.backgroundColor || primaryBg(0.15),
                     borderWidth: ds.borderWidth ?? 2.5,
                     pointRadius: ds.pointRadius ?? 4,
                     pointHoverRadius: ds.pointHoverRadius ?? 6,
-                    pointBackgroundColor: ds.pointBackgroundColor || '#E65100',
+                    pointBackgroundColor: ds.pointBackgroundColor || getPrimary(),
+                    pointHoverBackgroundColor: ds.pointHoverBackgroundColor || getPrimary(),
+                    pointHoverBorderColor: ds.pointHoverBorderColor || '#fff',
                     pointBorderColor: ds.pointBorderColor || '#fff',
                     pointBorderWidth: ds.pointBorderWidth ?? 2,
                     tension: ds.tension ?? 0.3,
@@ -54,7 +68,7 @@ window.chartInterop = {
                         backgroundColor: isDark ? '#333' : '#fff',
                         titleColor: isDark ? '#fff' : '#333',
                         bodyColor: isDark ? '#ccc' : '#555',
-                        borderColor: '#E65100',
+                        borderColor: getPrimary(),
                         borderWidth: 1,
                         cornerRadius: 8,
                         padding: 12,
@@ -86,7 +100,7 @@ window.chartInterop = {
                             },
                             labelTextColor: function(item) {
                                 const ds = item.chart.data.datasets[item.datasetIndex];
-                                if (ds.tooltipExtras) return '#E65100';
+                                if (ds.tooltipExtras) return getPrimary();
                                 return undefined;
                             }
                         }
@@ -122,7 +136,33 @@ window.chartInterop = {
                     duration: 600,
                     easing: 'easeOutQuart'
                 }
-            }
+            },
+            plugins: [
+                {
+                    id: 'dynamicAccent',
+                    beforeUpdate(chart) {
+                        const p = getPrimary();
+                        const r = parseInt(p.slice(1, 3), 16) || 0;
+                        const g = parseInt(p.slice(3, 5), 16) || 0;
+                        const b = parseInt(p.slice(5, 7), 16) || 0;
+                        const bg = `rgba(${r},${g},${b},0.15)`;
+                        chart.data.datasets.forEach(ds => {
+                            if (ds.tooltipExtras) return;
+                            if (ds.borderDash) return;
+                            if (ds.borderColor === 'transparent') return;
+                            ds.borderColor = p;
+                            ds.backgroundColor = bg;
+                            ds.pointBackgroundColor = p;
+                            ds.pointHoverBackgroundColor = p;
+                        });
+                    },
+                    beforeDraw(chart) {
+                        const p = getPrimary();
+                        chart.options.plugins.tooltip.borderColor = p;
+                        if (chart.tooltip) chart.tooltip.options.borderColor = p;
+                    }
+                }
+            ]
         };
 
         this.charts[canvasId] = new Chart(ctx, chartConfig);
@@ -167,22 +207,24 @@ window.chartInterop = {
     refreshAllCharts: function () {
         Object.keys(this.charts).forEach(id => {
             const chart = this.charts[id];
-            if (chart) {
-                const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-                const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
-                const textColor = isDark ? '#ccc' : '#555';
+            if (!chart) return;
 
-                chart.options.scales.x.grid.color = gridColor;
-                chart.options.scales.x.ticks.color = textColor;
-                chart.options.scales.y.grid.color = gridColor;
-                chart.options.scales.y.ticks.color = textColor;
-                chart.options.plugins.tooltip.backgroundColor = isDark ? '#333' : '#fff';
-                chart.options.plugins.tooltip.titleColor = isDark ? '#fff' : '#333';
-                chart.options.plugins.tooltip.bodyColor = isDark ? '#ccc' : '#555';
-                if (chart.options.plugins.legend.labels) chart.options.plugins.legend.labels.color = textColor;
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
+            const textColor = isDark ? '#ccc' : '#555';
 
-                chart.update('none');
-            }
+            // Theme colors for tooltip, grid, text
+            chart.options.plugins.tooltip.backgroundColor = isDark ? '#333' : '#fff';
+            chart.options.plugins.tooltip.titleColor = isDark ? '#fff' : '#333';
+            chart.options.plugins.tooltip.bodyColor = isDark ? '#ccc' : '#555';
+            chart.options.scales.x.grid.color = gridColor;
+            chart.options.scales.x.ticks.color = textColor;
+            chart.options.scales.y.grid.color = gridColor;
+            chart.options.scales.y.ticks.color = textColor;
+            if (chart.options.plugins.legend.labels) chart.options.plugins.legend.labels.color = textColor;
+
+            // beforeUpdate plugin handles accent colors on datasets + tooltip border
+            chart.update();
         });
     }
 };
