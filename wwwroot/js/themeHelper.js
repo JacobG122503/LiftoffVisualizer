@@ -6,13 +6,20 @@ window.themeHelper = {
         var color = isDark ? '#181A20' : accent;
 
         // Remove and re-create the theme-color meta so iOS re-evaluates it immediately
-        // (iOS ignores in-place attribute mutations on existing meta tags in standalone PWA mode)
         document.querySelectorAll('meta[name="theme-color"]').forEach(function(m) { m.remove(); });
-
         var meta = document.createElement('meta');
         meta.name = 'theme-color';
         meta.setAttribute('content', color);
         document.head.appendChild(meta);
+
+        // Always set iOS status bar style to 'default' (solid)
+        var iosStatusBar = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+        if (!iosStatusBar) {
+            iosStatusBar = document.createElement('meta');
+            iosStatusBar.name = 'apple-mobile-web-app-status-bar-style';
+            document.head.appendChild(iosStatusBar);
+        }
+        iosStatusBar.setAttribute('content', 'default');
     },
     _applyAccent: function (hex) {
         // Update favicon to match accent
