@@ -73,9 +73,7 @@
             </div>
             <div class="card-stat">
                 @{
-                    var bestSetSummary = _filteredData
-                        .OrderByDescending(d => d.BestSet1RMWeight * d.BestSet1RMReps)
-                        .FirstOrDefault();
+                    var bestSetSummary = _filteredData.MaxBy(d => d.MaxEstimated1RM);
                 }
                 <div class="card-stat-value" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                     @if (bestSetSummary != null && bestSetSummary.BestSet1RMWeight > 0 && bestSetSummary.BestSet1RMReps > 0)
@@ -161,20 +159,27 @@
                     </div>
                     <div class="card-stat">
                         @{
-                            var est1rm = _filteredData.MaxBy(d => d.MaxEstimated1RM);
+                            var est1rmFs = _filteredData.MaxBy(d => d.MaxEstimated1RM);
                         }
-                        <div class="card-stat-value" style="padding-bottom:0.1em;">
-                            @(est1rm?.MaxEstimated1RM.ToString("N0") ?? "-") lbs
-                            @if (est1rm != null && est1rm.BestSet1RMWeight > 0 && est1rm.BestSet1RMReps > 0)
-                            {
-                                <span style="display:inline-block;margin-left:0.4em;color:#181A20;font-size:0.95em;font-weight:500;white-space:nowrap;vertical-align:middle;">(@est1rm.BestSet1RMWeight.ToString("N0") lbs × @est1rm.BestSet1RMReps reps)</span>
-                            }
-                        </div>
+                        <div class="card-stat-value">@(est1rmFs?.MaxEstimated1RM.ToString("N0") ?? "-") lbs</div>
                         <div class="card-stat-label">Est. 1RM</div>
                     </div>
                     <div class="card-stat">
-                        <div class="card-stat-value">@(_filteredData.Max(d => d.TotalVolume).ToString("N0")) lbs</div>
-                        <div class="card-stat-label">Best Volume</div>
+                        @{
+                            var bestSetFs = _filteredData.MaxBy(d => d.MaxEstimated1RM);
+                        }
+                        <div class="card-stat-value" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                            @if (bestSetFs != null && bestSetFs.BestSet1RMWeight > 0 && bestSetFs.BestSet1RMReps > 0)
+                            {
+                                var bestSetText = $"{bestSetFs.BestSet1RMWeight} lbs × {bestSetFs.BestSet1RMReps} reps";
+                                <span style="display:inline-block;max-width:100%;font-size:clamp(0.8em, 2vw, 1em);vertical-align:middle;">@bestSetText</span>
+                            }
+                            else
+                            {
+                                <span>-</span>
+                            }
+                        </div>
+                        <div class="card-stat-label">Best Set</div>
                     </div>
                     <div class="card-stat">
                         <div class="card-stat-value">@_filteredData.Count</div>
