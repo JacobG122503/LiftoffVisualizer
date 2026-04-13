@@ -1128,7 +1128,7 @@ details[open] .more-stats-toggle::before { transform: rotate(90deg); }
 .paste-spinner {
     width: 16px;
     height: 16px;
-    border: 2px solid var(--border);
+    border: 2px solid var(--primary);
     border-top: 2px solid var(--primary);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
