@@ -4,44 +4,15 @@ window.themeHelper = {
         var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
         var accent = localStorage.getItem('lv-accent') || '#E65100';
         var color = isDark ? '#181A20' : accent;
-        // Set theme-color for Android/Chrome and iOS 15+
-        var meta = document.querySelector('meta[name="theme-color"]');
-        if (!meta) {
-            meta = document.createElement('meta');
-            meta.name = 'theme-color';
-            document.head.appendChild(meta);
-        }
+
+        // Remove and re-create the theme-color meta so iOS re-evaluates it immediately
+        // (iOS ignores in-place attribute mutations on existing meta tags in standalone PWA mode)
+        document.querySelectorAll('meta[name="theme-color"]').forEach(function(m) { m.remove(); });
+
+        var meta = document.createElement('meta');
+        meta.name = 'theme-color';
         meta.setAttribute('content', color);
-
-        // Set iOS Safari status bar style (for PWA and standalone)
-        var iosStatusBar = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
-        if (!iosStatusBar) {
-            iosStatusBar = document.createElement('meta');
-            iosStatusBar.name = 'apple-mobile-web-app-status-bar-style';
-            document.head.appendChild(iosStatusBar);
-        }
-        // Use 'black-translucent' for dark, 'default' for light
-        iosStatusBar.setAttribute('content', isDark ? 'black-translucent' : 'default');
-
-        // For iOS 15+ (Safari), set a background color for the status bar area
-        // This is done by setting a meta tag: <meta name="theme-color" media="(prefers-color-scheme: dark)">
-        var metaDark = document.querySelector('meta[name="theme-color"][media]');
-        if (!metaDark) {
-            metaDark = document.createElement('meta');
-            metaDark.name = 'theme-color';
-            metaDark.media = '(prefers-color-scheme: dark)';
-            document.head.appendChild(metaDark);
-        }
-        metaDark.setAttribute('content', '#181A20');
-        // Optionally, set a light version too
-        var metaLight = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: light)"]');
-        if (!metaLight) {
-            metaLight = document.createElement('meta');
-            metaLight.name = 'theme-color';
-            metaLight.media = '(prefers-color-scheme: light)';
-            document.head.appendChild(metaLight);
-        }
-        metaLight.setAttribute('content', accent);
+        document.head.appendChild(meta);
     },
     _applyAccent: function (hex) {
         // Update favicon to match accent
