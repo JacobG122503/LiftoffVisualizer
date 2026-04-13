@@ -77,6 +77,7 @@ window.themeHelper = {
 
     setMode: function (isDark) {
         document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+        document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
         try { localStorage.setItem('lv-theme', isDark ? 'dark' : 'light'); } catch (e) { }
         // Re-apply accent so --bg-card-hover recalculates for new base color
         try {
@@ -94,6 +95,7 @@ window.themeHelper = {
         const theme = localStorage.getItem('lv-theme') || 'light';
         const accent = localStorage.getItem('lv-accent') || '#E65100';
         document.documentElement.setAttribute('data-theme', theme);
+        document.documentElement.style.colorScheme = theme === 'dark' ? 'dark' : 'light';
         window.themeHelper._applyAccent(accent);
         window.themeHelper.setThemeColor();
     } catch (e) { }
